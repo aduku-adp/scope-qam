@@ -6,7 +6,10 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 
-MODULE_PATH = Path(__file__).resolve().parents[1] / "tools" / "extract_ratings_history.py"
+MODULE_PATH = (
+    Path(__file__).resolve().parents[1]
+    / "extract_ratings_history.py"
+)
 SPEC = importlib.util.spec_from_file_location("extract_ratings_history", MODULE_PATH)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC and SPEC.loader

@@ -16,7 +16,7 @@ from zipfile import BadZipFile
 from openpyxl import load_workbook
 
 TARGET_SHEET_NAME = "MASTER"
-DATA_DIR = Path("../data")
+DATA_DIR = Path("../../data")
 EXCEL_EXTENSIONS = (".xlsm", ".xlsx", ".xltm", ".xltx")
 ENV_FILE = Path(".env")
 DATA_ONLY = True
@@ -300,7 +300,9 @@ def ensure_table_and_insert(
             business_risk_profile = payload.get("business_risk_profile", {})
             financial_risk_profile = payload.get("financial_risk_profile", {})
             credit_metrics = payload.get("credit_metrics", [])
-            canonical_payload = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+            canonical_payload = json.dumps(
+                payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True
+            )
             record_hash = hashlib.sha256(canonical_payload.encode("utf-8")).hexdigest()
 
             cur.execute(

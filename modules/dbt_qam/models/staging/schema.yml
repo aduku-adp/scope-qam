@@ -1,0 +1,31 @@
+version: 2
+
+models:
+  - name: stg_rating_assessments_history
+    columns:
+      - name: record_hash
+        tests:
+          - not_null
+          - unique
+      - name: entity_name
+        tests:
+          - not_null
+  - name: stg_rating_methodologies
+    columns:
+      - name: record_hash
+        tests:
+          - not_null
+      - name: methodology_name
+        tests:
+          - not_null
+  - name: stg_credit_metrics
+    columns:
+      - name: record_hash
+        tests:
+          - not_null
+      - name: metric_name
+        tests:
+          - not_null
+      - name: year_label
+        tests:
+          - not_null

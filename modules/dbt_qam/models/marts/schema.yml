@@ -1,0 +1,58 @@
+version: 2
+
+models:
+  - name: dim_entity
+    columns:
+      - name: entity_key
+        tests:
+          - not_null
+          - unique
+      - name: entity_name
+        tests:
+          - not_null
+
+  - name: dim_date
+    columns:
+      - name: date_key
+        tests:
+          - not_null
+          - unique
+
+  - name: dim_methodology
+    columns:
+      - name: methodology_key
+        tests:
+          - not_null
+          - unique
+
+  - name: dim_credit_metric
+    columns:
+      - name: metric_key
+        tests:
+          - not_null
+          - unique
+
+  - name: fct_rating_assessment
+    columns:
+      - name: assessment_key
+        tests:
+          - not_null
+          - unique
+      - name: record_hash
+        tests:
+          - not_null
+
+  - name: fct_credit_metric_value
+    columns:
+      - name: credit_metric_value_key
+        tests:
+          - not_null
+          - unique
+      - name: metric_value
+
+  - name: bridge_assessment_methodology
+    columns:
+      - name: assessment_methodology_key
+        tests:
+          - not_null
+          - unique
