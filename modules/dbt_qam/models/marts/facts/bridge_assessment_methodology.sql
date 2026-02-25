@@ -22,9 +22,9 @@ select
     md5(record_hash || '|' || methodology_name) as assessment_methodology_key,
     record_hash,
     entity_key,
-    to_char(assessment_date, 'YYYYMMDD')::int as assessment_date_key,
+    to_char(rating_date, 'YYYYMMDD')::int as rating_date_key,
     methodology_key,
     methodology_name,
-    source_system,
-    document_version
+    source_file_path,
+    source_modified_at_utc
 from methodology_joined

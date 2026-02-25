@@ -1,7 +1,7 @@
 with dates as (
-    select distinct assessment_date as full_date
+    select distinct rating_date as full_date
     from {{ ref('stg_rating_assessments_history') }}
-    where assessment_date is not null
+    where rating_date is not null
 )
 select
     to_char(full_date, 'YYYYMMDD')::int as date_key,

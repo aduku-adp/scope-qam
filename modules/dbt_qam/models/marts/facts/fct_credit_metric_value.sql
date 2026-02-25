@@ -23,12 +23,12 @@ select
     record_hash,
     entity_key,
     metric_key,
-    to_char(assessment_date, 'YYYYMMDD')::int as assessment_date_key,
-    assessment_date,
+    to_char(rating_date, 'YYYYMMDD')::int as rating_date_key,
+    rating_date,
     year_label,
     is_estimate,
     metric_value,
     locked,
-    source_system,
-    document_version
+    source_file_path,
+    source_modified_at_utc
 from metric_joined

@@ -31,4 +31,4 @@ jobs:
 
       - name: Run tests
         run: |
-          python -m pytest -q modules/data-extraction/tests/test_extract_ratings_history.py
+          python -m pytest -q modules/data-extraction/tests
