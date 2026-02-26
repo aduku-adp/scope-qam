@@ -1,0 +1,5 @@
+dbt-core
+dbt-postgres
+openpyxl
+pydantic
+psycopg2-binary

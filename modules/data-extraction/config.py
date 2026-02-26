@@ -58,7 +58,7 @@ class ConfigLoader:
             return default
 
         return DbConfig(
-            host=get_value("PG_HOST", default="localhost"),
+            host=get_value("PG_HOST", default="postgres"),
             port=int(get_value("PG_PORT", default="5432")),
             user=get_value("PG_USER", default="postgres"),
             password=get_value("PG_PASSWORD", default="postgres"),
