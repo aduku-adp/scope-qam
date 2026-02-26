@@ -41,3 +41,14 @@ models:
       - name: year_label
         tests:
           - not_null
+  - name: stg_industry_risks
+    columns:
+      - name: record_hash
+        tests:
+          - not_null
+      - name: document_version
+        tests:
+          - not_null
+      - name: industry_risk_index
+        tests:
+          - not_null

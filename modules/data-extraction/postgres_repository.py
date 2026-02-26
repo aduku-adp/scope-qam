@@ -66,6 +66,20 @@ class PostgresRepository:
             raise
 
     def _ensure_rating_assessments_schema(self, cur) -> None:
+        def _column_data_type(column_name: str) -> str | None:
+            cur.execute(
+                """
+                SELECT data_type
+                FROM information_schema.columns
+                WHERE table_schema = 'raw'
+                  AND table_name = 'rating_assessments_history'
+                  AND column_name = %s;
+                """,
+                (column_name,),
+            )
+            row = cur.fetchone()
+            return row[0] if row else None
+
         cur.execute("CREATE SCHEMA IF NOT EXISTS raw;")
         cur.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto;")
         cur.execute(
@@ -85,6 +99,7 @@ class PostgresRepository:
                 company_name TEXT NOT NULL,
                 country TEXT,
                 corporate_sector TEXT,
+                segmentation_criteria TEXT,
                 business_risk_score TEXT,
                 financial_risk_score TEXT,
                 source_file_path TEXT,
@@ -97,12 +112,6 @@ class PostgresRepository:
 
         for statement in [
             "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS company_information JSONB;",
-            "ALTER TABLE raw.rating_assessments_history ALTER COLUMN company_information TYPE JSONB USING company_information::jsonb;",
-            "ALTER TABLE raw.rating_assessments_history ALTER COLUMN methodology TYPE JSONB USING methodology::jsonb;",
-            "ALTER TABLE raw.rating_assessments_history ALTER COLUMN industry_risk TYPE JSONB USING industry_risk::jsonb;",
-            "ALTER TABLE raw.rating_assessments_history ALTER COLUMN business_risk_profile TYPE JSONB USING business_risk_profile::jsonb;",
-            "ALTER TABLE raw.rating_assessments_history ALTER COLUMN financial_risk_profile TYPE JSONB USING financial_risk_profile::jsonb;",
-            "ALTER TABLE raw.rating_assessments_history ALTER COLUMN credit_metrics TYPE JSONB USING credit_metrics::jsonb;",
             "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS extracted_payload JSONB;",
             "ALTER TABLE raw.rating_assessments_history DROP COLUMN IF EXISTS file_metadata;",
             "ALTER TABLE raw.rating_assessments_history DROP COLUMN IF EXISTS source_system;",
@@ -110,6 +119,7 @@ class PostgresRepository:
             "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS company_name TEXT;",
             "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS company_key TEXT;",
             "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS corporate_sector TEXT;",
+            "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS segmentation_criteria TEXT;",
             "ALTER TABLE raw.rating_assessments_history DROP COLUMN IF EXISTS industry;",
             "CREATE UNIQUE INDEX IF NOT EXISTS uq_rating_assessments_history_company_version ON raw.rating_assessments_history (company_key, document_version);",
             "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS source_file_path TEXT;",
@@ -118,6 +128,70 @@ class PostgresRepository:
             "ALTER TABLE raw.rating_assessments_history DROP COLUMN IF EXISTS rating_date;",
         ]:
             cur.execute(statement)
+
+        jsonb_columns = [
+            "company_information",
+            "methodology",
+            "industry_risk",
+            "business_risk_profile",
+            "financial_risk_profile",
+            "credit_metrics",
+        ]
+        for column_name in jsonb_columns:
+            data_type = _column_data_type(column_name)
+            if data_type is None:
+                continue
+            if data_type.lower() == "jsonb":
+                continue
+            cur.execute(
+                f"""
+                ALTER TABLE raw.rating_assessments_history
+                ALTER COLUMN {column_name} TYPE JSONB
+                USING {column_name}::jsonb;
+                """
+            )
+
+        cur.execute(
+            """
+            UPDATE raw.rating_assessments_history
+            SET segmentation_criteria = COALESCE(
+                segmentation_criteria,
+                company_information ->> 'segmentation_criteria',
+                CASE
+                    WHEN jsonb_typeof(industry_risk) = 'object'
+                        THEN industry_risk ->> 'segmentation_criteria'
+                    ELSE NULL
+                END
+            )
+            WHERE segmentation_criteria IS NULL
+              AND (
+                  company_information ? 'segmentation_criteria'
+                  OR (
+                      jsonb_typeof(industry_risk) = 'object'
+                      AND industry_risk ? 'segmentation_criteria'
+                  )
+              );
+            """
+        )
+        cur.execute(
+            """
+            UPDATE raw.rating_assessments_history
+            SET company_information = jsonb_set(
+                company_information,
+                '{segmentation_criteria}',
+                to_jsonb(segmentation_criteria),
+                true
+            )
+            WHERE segmentation_criteria IS NOT NULL
+              AND NOT (company_information ? 'segmentation_criteria');
+            """
+        )
+
+    def ensure_rating_assessments_schema(self) -> None:
+        with psycopg2.connect(self._conn_str()) as conn:
+            with conn.cursor() as cur:
+                self._ensure_rating_assessments_schema(cur)
+            conn.commit()
 
     def insert_rating_assessment(self, source_file: str, payload: dict) -> str | None:
         sql_insert = """
@@ -140,6 +214,7 @@ class PostgresRepository:
             company_name,
             country,
             corporate_sector,
+            segmentation_criteria,
             business_risk_score,
             financial_risk_score,
             source_file_path,
@@ -149,6 +224,7 @@ class PostgresRepository:
             %s,
             %s,
             next_version.version,
+            %s,
             %s,
             %s,
             %s,
@@ -181,6 +257,7 @@ class PostgresRepository:
         company_name = company_information.get("name")
         country = company_information.get("country_of_origin")
         corporate_sector = company_information.get("corporate_sector")
+        segmentation_criteria = company_information.get("segmentation_criteria")
         company_key = self.build_company_key(company_name, country)
         source_file_path, source_modified_at_utc = self.build_source_file_fields(source_file)
         canonical_payload = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
@@ -205,6 +282,7 @@ class PostgresRepository:
                         company_name,
                         country,
                         corporate_sector,
+                        segmentation_criteria,
                         business_risk_profile.get("overall_score"),
                         financial_risk_profile.get("overall_score"),
                         source_file_path,
@@ -213,6 +291,14 @@ class PostgresRepository:
                 )
                 row = cur.fetchone()
                 inserted_id = str(row[0]) if row else None
+                cur.execute(
+                    """
+                    UPDATE raw.rating_assessments_history
+                    SET segmentation_criteria = company_information ->> 'segmentation_criteria'
+                    WHERE segmentation_criteria IS NULL
+                      AND company_information ? 'segmentation_criteria';
+                    """
+                )
             conn.commit()
 
         return inserted_id
@@ -343,3 +429,12 @@ class PostgresRepository:
                         ),
                     )
             conn.commit()
+
+    def query_violation_count(self, query: str) -> int:
+        with psycopg2.connect(self._conn_str()) as conn:
+            with conn.cursor() as cur:
+                cur.execute(query)
+                row = cur.fetchone()
+                if not row or row[0] is None:
+                    return 0
+                return int(row[0])

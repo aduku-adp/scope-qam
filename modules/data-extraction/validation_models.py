@@ -16,8 +16,9 @@ class CompanyInformation(BaseModel):
     reporting_currency: StrictStr = Field(min_length=1)
     accounting_principles: StrictStr = Field(min_length=1)
     fiscal_year_end: StrictStr = Field(min_length=1)
+    segmentation_criteria: StrictStr | None = None
     methodology: Methodology
-    industry_risk: IndustryRisk
+    industry_risk: list[IndustryRisk] = Field(min_length=1)
 
 
 class Methodology(BaseModel):
@@ -29,10 +30,9 @@ class Methodology(BaseModel):
 class IndustryRisk(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
-    industry_classification: StrictStr = Field(min_length=1)
-    industry_risk_score: StrictStr = Field(min_length=1)
+    industry_classification: StrictStr | None = None
+    industry_risk_score: StrictStr | None = None
     industry_weight: StrictFloat | None = None
-    segmentation_criteria: StrictStr | None = None
 
 
 class BusinessRiskComponents(BaseModel):

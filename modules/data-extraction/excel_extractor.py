@@ -98,6 +98,44 @@ class MasterSheetExtractor:
 
         return metrics
 
+    def _extract_industry_risk(self, master_sheet) -> list[dict[str, Any]]:
+        risk_row = None
+        score_row = None
+        weight_row = None
+
+        for row_idx in range(1, master_sheet.max_row + 1):
+            label = master_sheet.cell(row=row_idx, column=2).value
+            if label == "Industry risk":
+                risk_row = row_idx
+            elif label == "Industry risk score":
+                score_row = row_idx
+            elif label == "Industry weight":
+                weight_row = row_idx
+
+        if risk_row is None or score_row is None or weight_row is None:
+            return []
+
+        items: list[dict[str, Any]] = []
+        for col_idx in range(3, master_sheet.max_column + 1):
+            classification = master_sheet.cell(row=risk_row, column=col_idx).value
+            score = master_sheet.cell(row=score_row, column=col_idx).value
+            weight = master_sheet.cell(row=weight_row, column=col_idx).value
+
+            if classification in (None, "") and score in (None, "") and weight in (None, ""):
+                if items:
+                    break
+                continue
+
+            items.append(
+                {
+                    "industry_classification": None if classification in (None, "") else str(classification),
+                    "industry_risk_score": None if score in (None, "") else str(score),
+                    "industry_weight": self._parse_float_value(weight),
+                }
+            )
+
+        return items
+
     def extract_workbook(self, workbook_path: Path) -> dict[str, Any]:
         workbook = load_workbook(workbook_path, data_only=self.data_only)
         if self.target_sheet_name not in workbook.sheetnames:
@@ -125,14 +163,8 @@ class MasterSheetExtractor:
                 "methodology": {
                     "rating_methodologies_applied": methodologies,
                 },
-                "industry_risk": {
-                    "industry_classification": self._get_label_value(ws, "Industry risk"),
-                    "industry_risk_score": self._get_label_value(ws, "Industry risk score"),
-                    "industry_weight": self._parse_float_value(
-                        self._get_label_value(ws, "Industry weight")
-                    ),
-                    "segmentation_criteria": self._get_label_value(ws, "Segmentation criteria"),
-                },
+                "industry_risk": self._extract_industry_risk(ws),
+                "segmentation_criteria": self._get_label_value(ws, "Segmentation criteria"),
             },
             "business_risk_profile": {
                 "overall_score": self._get_label_value(ws, "Business risk profile"),

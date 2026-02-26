@@ -26,15 +26,17 @@ def _valid_payload() -> dict:
             "reporting_currency": "EUR",
             "accounting_principles": "IFRS",
             "fiscal_year_end": "December",
+            "segmentation_criteria": "EBITDA contribution",
             "methodology": {
                 "rating_methodologies_applied": ["General Corporate Rating Methodology"]
             },
-            "industry_risk": {
-                "industry_classification": "Consumer Products: Non-Discretionary",
-                "industry_risk_score": "BBB",
-                "industry_weight": 1.0,
-                "segmentation_criteria": "EBITDA contribution",
-            },
+            "industry_risk": [
+                {
+                    "industry_classification": "Consumer Products: Non-Discretionary",
+                    "industry_risk_score": "BBB",
+                    "industry_weight": 1.0,
+                }
+            ],
         },
         "business_risk_profile": {
             "overall_score": "B",
@@ -101,7 +103,7 @@ def test_validate_extracted_payload_invalid_text_type_fails():
 
 def test_validate_extracted_payload_invalid_numeric_type_fails():
     payload = _valid_payload()
-    payload["company_information"]["industry_risk"]["industry_weight"] = "bad-float"
+    payload["company_information"]["industry_risk"][0]["industry_weight"] = "bad-float"
 
     with pytest.raises(ValidationError):
         MODULE.validate_extracted_payload(payload)

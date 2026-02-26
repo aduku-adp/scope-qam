@@ -1,0 +1,67 @@
+version: 1
+
+payload_rules:
+  - id: industry_weight_sum
+    type: industry_weight_sum
+    severity: error
+    fail_threshold: 1
+    warn_threshold: 1
+    config:
+      expected_sum: 1.0
+      tolerance: 0.001
+
+  - id: score_scale_allowed
+    type: score_scale
+    severity: error
+    fail_threshold: 1
+    warn_threshold: 1
+    config:
+      allowed_values:
+        - AAA
+        - AA+
+        - AA
+        - AA-
+        - A+
+        - A
+        - A-
+        - BBB+
+        - BBB
+        - BBB-
+        - BB+
+        - BB
+        - BB-
+        - B+
+        - B
+        - B-
+        - CCC
+        - CC
+        - C
+        - D
+      paths:
+        - company_information.industry_risk[*].industry_risk_score
+        - business_risk_profile.overall_score
+        - business_risk_profile.components.*
+        - financial_risk_profile.overall_score
+        - financial_risk_profile.components.leverage
+        - financial_risk_profile.components.interest_cover
+        - financial_risk_profile.components.cash_flow_cover
+
+  - id: credit_metrics_year_value_logic
+    type: credit_metrics_year_value_logic
+    severity: error
+    fail_threshold: 1
+    warn_threshold: 1
+    config:
+      year_regex: "^[0-9]{4}(E)?$"
+      require_numeric_value: true
+      allow_null_values: true
+      allow_negative_values: true
+
+  - id: credit_metrics_outlier_values
+    type: credit_metrics_outlier
+    severity: warning
+    fail_threshold: 999999
+    warn_threshold: 1
+    config:
+      min_value: -10000.0
+      max_value: 10000.0

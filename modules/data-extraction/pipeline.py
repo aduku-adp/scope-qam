@@ -10,6 +10,7 @@ from zipfile import BadZipFile
 
 from pydantic import ValidationError
 
+from business_rules import BusinessRuleEngine
 from config import AppConfig
 from excel_extractor import MasterSheetExtractor
 from pipeline_types import FileProcessLog, PipelineRunMetrics
@@ -23,10 +24,12 @@ class RatingsExtractionPipeline:
         app_config: AppConfig,
         extractor: MasterSheetExtractor,
         repository: PostgresRepository,
+        business_rules: BusinessRuleEngine | None = None,
     ) -> None:
         self.app_config = app_config
         self.extractor = extractor
         self.repository = repository
+        self.business_rules = business_rules
 
     def _discover_incremental_files(self) -> list[Path]:
         data_dir = self.app_config.data_dir.resolve()
@@ -44,7 +47,8 @@ class RatingsExtractionPipeline:
             raise FileNotFoundError(f"No Excel files found in {data_dir}")
 
         with_modified = [
-            (path, self.repository.get_source_modified_at_utc(path)) for path in candidate_paths
+            (path, self.repository.get_source_modified_at_utc(path))
+            for path in candidate_paths
         ]
         with_modified.sort(key=lambda item: item[1] or datetime.min.replace(tzinfo=UTC))
 
@@ -53,7 +57,9 @@ class RatingsExtractionPipeline:
             return [path for path, _ in with_modified]
 
         return [
-            path for path, modified_at in with_modified if modified_at is not None and modified_at >= cutoff
+            path
+            for path, modified_at in with_modified
+            if modified_at is not None and modified_at >= cutoff
         ]
 
     def run(self) -> None:
@@ -62,6 +68,13 @@ class RatingsExtractionPipeline:
             started_at=datetime.now(UTC),
         )
         file_logs: list[FileProcessLog] = []
+
+        try:
+            self.repository.ensure_rating_assessments_schema()
+        except Exception as exc:
+            message = f"Schema/backfill step failed: {exc}"
+            print(message)
+            metrics.errors.append(message)
 
         workbook_paths = self._discover_incremental_files()
         if not workbook_paths:
@@ -78,7 +91,9 @@ class RatingsExtractionPipeline:
             try:
                 raw_payload = self.extractor.extract_workbook(workbook_path)
             except BadZipFile:
-                message = f"Skipped invalid Excel file (not a zip workbook): {workbook_path}"
+                message = (
+                    f"Skipped invalid Excel file (not a zip workbook): {workbook_path}"
+                )
                 print(message)
                 metrics.rows_skipped += 1
                 metrics.extraction_failures += 1
@@ -111,8 +126,30 @@ class RatingsExtractionPipeline:
                 file_logs.append(file_log)
                 continue
 
+            if self.business_rules is not None:
+                outcomes = self.business_rules.evaluate_payload(payload)
+                rule_errors = [o.message for o in outcomes if o.status == "fail"]
+                rule_warnings = [o.message for o in outcomes if o.status == "warn"]
+
+                if rule_warnings:
+                    metrics.warnings.extend(rule_warnings)
+                    file_log.warning_message = " | ".join(rule_warnings)
+
+                if rule_errors:
+                    message = f"Business-rule validation failed for {workbook_path.name}: {' | '.join(rule_errors)}"
+                    print(message)
+                    metrics.rows_skipped += 1
+                    metrics.validation_failures += 1
+                    metrics.errors.append(message)
+                    file_log.status = "validation_failed"
+                    file_log.error_message = message
+                    file_logs.append(file_log)
+                    continue
+
             try:
-                inserted_id = self.repository.insert_rating_assessment(str(workbook_path), payload)
+                inserted_id = self.repository.insert_rating_assessment(
+                    str(workbook_path), payload
+                )
             except Exception as exc:
                 message = f"Load failed for {workbook_path.name}: {exc}"
                 print(message)
@@ -125,7 +162,9 @@ class RatingsExtractionPipeline:
                 continue
 
             if inserted_id is None:
-                message = f"Skipped duplicate (same record_hash) for {workbook_path.name}"
+                message = (
+                    f"Skipped duplicate (same record_hash) for {workbook_path.name}"
+                )
                 print(message)
                 metrics.rows_skipped += 1
                 continue
@@ -140,7 +179,9 @@ class RatingsExtractionPipeline:
         duration_seconds = (datetime.now(UTC) - metrics.started_at).total_seconds()
 
         try:
-            self.repository.insert_run_log(metrics=metrics, duration_seconds=duration_seconds)
+            self.repository.insert_run_log(
+                metrics=metrics, duration_seconds=duration_seconds
+            )
         except Exception as exc:
             print(f"Failed to persist run log for run_id={metrics.run_id}: {exc}")
 

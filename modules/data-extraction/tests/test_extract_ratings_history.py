@@ -37,10 +37,11 @@ def _sample_payload() -> dict:
             "name": "Company A",
             "country_of_origin": "Federal Republic of Germany",
             "corporate_sector": "Personal & Household Goods",
+            "segmentation_criteria": "EBITDA contribution",
             "methodology": {
                 "rating_methodologies_applied": ["General Corporate Rating Methodology"]
             },
-            "industry_risk": {"industry_risk_score": "BBB"},
+            "industry_risk": [{"industry_risk_score": "BBB"}],
         },
         "business_risk_profile": {"overall_score": "B"},
         "financial_risk_profile": {"overall_score": "CC"},
@@ -100,8 +101,9 @@ def test_ensure_table_and_insert_sets_record_hash_and_returns_id():
     assert insert_params[8].adapted == payload["credit_metrics"]
     assert insert_params[9].adapted == payload
     assert insert_params[10] == "Company A"
-    assert str(insert_params[15]).endswith("corporates_A_2.xlsm")
-    assert insert_params[16] is None or "T" in str(insert_params[16])
+    assert insert_params[13] == "EBITDA contribution"
+    assert str(insert_params[16]).endswith("corporates_A_2.xlsm")
+    assert insert_params[17] is None or "T" in str(insert_params[17])
 
 
 def test_ensure_table_and_insert_returns_none_on_duplicate_conflict():

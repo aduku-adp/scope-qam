@@ -43,6 +43,13 @@ models:
           - not_null
           - unique
 
+  - name: dim_industry_risk
+    columns:
+      - name: industry_risk_key
+        tests:
+          - not_null
+          - unique
+
   - name: fct_rating_assessment
     columns:
       - name: assessment_key
@@ -70,6 +77,16 @@ models:
   - name: bridge_assessment_methodology
     columns:
       - name: assessment_methodology_key
+        tests:
+          - not_null
+          - unique
+      - name: document_version
+        tests:
+          - not_null
+
+  - name: bridge_assessment_industry_risk
+    columns:
+      - name: assessment_industry_risk_key
         tests:
           - not_null
           - unique

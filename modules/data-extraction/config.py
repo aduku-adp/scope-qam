@@ -21,6 +21,7 @@ class AppConfig:
     project_root: Path
     data_dir: Path
     env_file: Path
+    rules_file: Path
     target_sheet_name: str = "MASTER"
     data_only: bool = True
     excel_extensions: tuple[str, ...] = (".xlsm", ".xlsx", ".xltm", ".xltx")
@@ -72,4 +73,5 @@ def default_app_config() -> AppConfig:
         project_root=project_root,
         data_dir=project_root / "data",
         env_file=project_root / ".env",
+        rules_file=project_root / "modules" / "data-extraction" / "business_rules.yml",
     )

@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+from business_rules import BusinessRuleEngine
 from config import AppConfig, ConfigLoader, DbConfig, default_app_config
 from excel_extractor import MasterSheetExtractor
 from pipeline import RatingsExtractionPipeline
@@ -32,10 +33,12 @@ def build_app() -> tuple[RatingsExtractionPipeline, AppConfig]:
         data_only=app_config.data_only,
     )
     repository = PostgresRepository(db_config)
+    business_rules = BusinessRuleEngine(app_config.rules_file)
     pipeline = RatingsExtractionPipeline(
         app_config=app_config,
         extractor=extractor,
         repository=repository,
+        business_rules=business_rules,
     )
     return pipeline, app_config
 
