@@ -56,7 +56,4 @@ venv.bak/
 *~$*
 *.DS_Store*
 .DS_Store
-./data/pg_data_qam/
-*/data/pg_data_qam/*
- data/pg_data_qam/
- data/pg_data_qam/*
+/data/pg_data_qam/
