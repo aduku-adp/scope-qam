@@ -33,13 +33,15 @@ REPO_SPEC.loader.exec_module(REPO_MODULE)
 
 def _sample_payload() -> dict:
     return {
-        "entity_information": {
+        "company_information": {
             "name": "Company A",
             "country_of_origin": "Federal Republic of Germany",
-            "industry": "Personal & Household Goods",
+            "corporate_sector": "Personal & Household Goods",
+            "methodology": {
+                "rating_methodologies_applied": ["General Corporate Rating Methodology"]
+            },
+            "industry_risk": {"industry_risk_score": "BBB"},
         },
-        "methodology": {"rating_methodologies_applied": ["General Corporate Rating Methodology"]},
-        "industry_risk": {"industry_risk_score": "BBB"},
         "business_risk_profile": {"overall_score": "B"},
         "financial_risk_profile": {"overall_score": "CC"},
         "credit_metrics": [],
@@ -84,22 +86,22 @@ def test_ensure_table_and_insert_sets_record_hash_and_returns_id():
     expected_hash = hashlib.sha256(
         json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
     ).hexdigest()
-    expected_entity_key = hashlib.md5(
-        "Company A|Federal Republic of Germany|Personal & Household Goods".encode("utf-8")
+    expected_company_key = hashlib.md5(
+        "Company A|Federal Republic of Germany".encode("utf-8")
     ).hexdigest()
-    assert insert_params[0] == expected_entity_key
+    assert insert_params[0] == expected_company_key
     assert insert_params[1] == expected_hash
-    assert insert_params[2] == expected_entity_key
-    assert insert_params[3].adapted == payload["entity_information"]
-    assert insert_params[4].adapted == payload["methodology"]
-    assert insert_params[5].adapted == payload["industry_risk"]
+    assert insert_params[2] == expected_company_key
+    assert insert_params[3].adapted == payload["company_information"]
+    assert insert_params[4].adapted == payload["company_information"]["methodology"]
+    assert insert_params[5].adapted == payload["company_information"]["industry_risk"]
     assert insert_params[6].adapted == payload["business_risk_profile"]
     assert insert_params[7].adapted == payload["financial_risk_profile"]
     assert insert_params[8].adapted == payload["credit_metrics"]
     assert insert_params[9].adapted == payload
     assert insert_params[10] == "Company A"
-    assert str(insert_params[16]).endswith("corporates_A_2.xlsm")
-    assert insert_params[17] is None or "T" in str(insert_params[17])
+    assert str(insert_params[15]).endswith("corporates_A_2.xlsm")
+    assert insert_params[16] is None or "T" in str(insert_params[16])
 
 
 def test_ensure_table_and_insert_returns_none_on_duplicate_conflict():

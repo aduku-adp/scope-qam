@@ -2,22 +2,22 @@
 
 from __future__ import annotations
 
-from datetime import date
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt, StrictStr
 
 
-class EntityInformation(BaseModel):
+class CompanyInformation(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
     name: StrictStr = Field(min_length=1)
     corporate_sector: StrictStr = Field(min_length=1)
-    industry: StrictStr = Field(min_length=1)
     country_of_origin: StrictStr = Field(min_length=1)
     reporting_currency: StrictStr = Field(min_length=1)
     accounting_principles: StrictStr = Field(min_length=1)
     fiscal_year_end: StrictStr = Field(min_length=1)
+    methodology: Methodology
+    industry_risk: IndustryRisk
 
 
 class Methodology(BaseModel):
@@ -88,13 +88,10 @@ class CreditMetric(BaseModel):
 class RatingAssessmentPayload(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
-    entity_information: EntityInformation
-    methodology: Methodology
-    industry_risk: IndustryRisk
+    company_information: CompanyInformation
     business_risk_profile: BusinessRiskProfile
     financial_risk_profile: FinancialRiskProfile
     credit_metrics: list[CreditMetric]
-    rating_date: date | None = None
 
 
 def validate_extracted_payload(payload: dict[str, Any]) -> dict[str, Any]:

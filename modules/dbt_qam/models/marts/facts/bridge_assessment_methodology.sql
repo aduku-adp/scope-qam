@@ -2,27 +2,20 @@ with base as (
     select *
     from {{ ref('stg_rating_methodologies') }}
 ),
-entity_joined as (
-    select
-        b.*,
-        e.entity_key
-    from base b
-    left join {{ ref('dim_entity') }} e
-        on b.entity_name = e.entity_name
-),
 methodology_joined as (
     select
-        e.*,
+        b.*,
         m.methodology_key
-    from entity_joined e
+    from base b
     left join {{ ref('dim_methodology') }} m
-        on e.methodology_name = m.methodology_name
+        on b.methodology_name = m.methodology_name
 )
 select
-    md5(record_hash || '|' || methodology_name) as assessment_methodology_key,
+    md5(record_hash || '|' || methodology_name || '|' || document_version::text) as assessment_methodology_key,
     record_hash,
-    entity_key,
-    to_char(rating_date, 'YYYYMMDD')::int as rating_date_key,
+    company_key,
+    document_version,
+    to_char(source_modified_date, 'YYYYMMDD')::int as source_modified_date_key,
     methodology_key,
     methodology_name,
     source_file_path,

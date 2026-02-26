@@ -112,29 +112,27 @@ class MasterSheetExtractor:
                 continue
             methodologies.append(str(value))
 
-        corporate_sector_label = ws.cell(row=3, column=2).value
-        industry_value = ws.cell(row=3, column=3).value
+        corporate_sector_value = ws.cell(row=3, column=3).value
 
         return {
-            "entity_information": {
+            "company_information": {
                 "name": self._get_label_value(ws, "Rated entity"),
-                "corporate_sector": corporate_sector_label,
-                "industry": industry_value,
+                "corporate_sector": corporate_sector_value,
                 "country_of_origin": self._get_label_value(ws, "Country of origin"),
                 "reporting_currency": self._get_label_value(ws, "Reporting Currency/Units"),
                 "accounting_principles": self._get_label_value(ws, "Accounting principles"),
                 "fiscal_year_end": self._get_label_value(ws, "End of business year"),
-            },
-            "methodology": {
-                "rating_methodologies_applied": methodologies,
-            },
-            "industry_risk": {
-                "industry_classification": self._get_label_value(ws, "Industry risk"),
-                "industry_risk_score": self._get_label_value(ws, "Industry risk score"),
-                "industry_weight": self._parse_float_value(
-                    self._get_label_value(ws, "Industry weight")
-                ),
-                "segmentation_criteria": self._get_label_value(ws, "Segmentation criteria"),
+                "methodology": {
+                    "rating_methodologies_applied": methodologies,
+                },
+                "industry_risk": {
+                    "industry_classification": self._get_label_value(ws, "Industry risk"),
+                    "industry_risk_score": self._get_label_value(ws, "Industry risk score"),
+                    "industry_weight": self._parse_float_value(
+                        self._get_label_value(ws, "Industry weight")
+                    ),
+                    "segmentation_criteria": self._get_label_value(ws, "Segmentation criteria"),
+                },
             },
             "business_risk_profile": {
                 "overall_score": self._get_label_value(ws, "Business risk profile"),

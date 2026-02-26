@@ -7,12 +7,21 @@ models:
         tests:
           - not_null
           - unique
-      - name: entity_name
+      - name: company_key
+        tests:
+          - not_null
+      - name: document_version
+        tests:
+          - not_null
+      - name: company_name
         tests:
           - not_null
   - name: stg_rating_methodologies
     columns:
       - name: record_hash
+        tests:
+          - not_null
+      - name: document_version
         tests:
           - not_null
       - name: methodology_name
@@ -21,6 +30,9 @@ models:
   - name: stg_credit_metrics
     columns:
       - name: record_hash
+        tests:
+          - not_null
+      - name: document_version
         tests:
           - not_null
       - name: metric_name

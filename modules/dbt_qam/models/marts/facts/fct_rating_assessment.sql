@@ -1,23 +1,14 @@
 with base as (
     select *
     from {{ ref('stg_rating_assessments_history') }}
-),
-entity_joined as (
-    select
-        b.*,
-        e.entity_key
-    from base b
-    left join {{ ref('dim_entity') }} e
-        on b.entity_name = e.entity_name
-       and coalesce(b.country, '') = coalesce(e.country, '')
-       and coalesce(b.industry, '') = coalesce(e.industry, '')
 )
 select
     md5(record_hash) as assessment_key,
     record_hash,
-    entity_key,
-    to_char(rating_date, 'YYYYMMDD')::int as rating_date_key,
-    rating_date,
+    company_key,
+    document_version,
+    to_char(source_modified_date, 'YYYYMMDD')::int as source_modified_date_key,
+    source_modified_date,
     source_file_path,
     source_modified_at_utc,
     industry_risk_score,
@@ -37,4 +28,4 @@ select
     cash_flow_cover,
     liquidity_adjustment_notches,
     ingested_at
-from entity_joined
+from base

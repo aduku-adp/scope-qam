@@ -1,8 +1,10 @@
 with base as (
     select
         record_hash,
-        entity_name,
-        rating_date,
+        company_key,
+        document_version,
+        company_name,
+        source_modified_date,
         source_file_path,
         source_modified_at_utc,
         credit_metrics_json
@@ -11,8 +13,10 @@ with base as (
 metrics as (
     select
         b.record_hash,
-        b.entity_name,
-        b.rating_date,
+        b.company_key,
+        b.document_version,
+        b.company_name,
+        b.source_modified_date,
         b.source_file_path,
         b.source_modified_at_utc,
         metric_obj
@@ -22,8 +26,10 @@ metrics as (
 metric_values as (
     select
         m.record_hash,
-        m.entity_name,
-        m.rating_date,
+        m.company_key,
+        m.document_version,
+        m.company_name,
+        m.source_modified_date,
         m.source_file_path,
         m.source_modified_at_utc,
         m.metric_obj ->> 'metric' as metric_name,
@@ -34,8 +40,10 @@ metric_values as (
 )
 select
     record_hash,
-    entity_name,
-    rating_date,
+    company_key,
+    document_version,
+    company_name,
+    source_modified_date,
     source_file_path,
     source_modified_at_utc,
     metric_name,

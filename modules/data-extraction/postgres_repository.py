@@ -48,8 +48,8 @@ class PostgresRepository:
             return None
 
     @staticmethod
-    def build_entity_key(entity_name: str | None, country: str | None, industry: str | None) -> str:
-        key_material = f"{entity_name or ''}|{country or ''}|{industry or ''}"
+    def build_company_key(company_name: str | None, country: str | None) -> str:
+        key_material = f"{company_name or ''}|{country or ''}"
         return hashlib.md5(key_material.encode("utf-8")).hexdigest()
 
     def get_incremental_cutoff(self) -> datetime | None:
@@ -73,31 +73,31 @@ class PostgresRepository:
             CREATE TABLE IF NOT EXISTS raw.rating_assessments_history (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 record_hash TEXT NOT NULL UNIQUE,
-                entity_information JSONB NOT NULL,
+                company_information JSONB NOT NULL,
                 methodology JSONB NOT NULL,
                 industry_risk JSONB NOT NULL,
                 business_risk_profile JSONB NOT NULL,
                 financial_risk_profile JSONB NOT NULL,
                 credit_metrics JSONB NOT NULL,
                 extracted_payload JSONB NOT NULL,
-                entity_key TEXT NOT NULL,
+                company_key TEXT NOT NULL,
                 document_version INTEGER NOT NULL,
-                entity_name TEXT NOT NULL,
+                company_name TEXT NOT NULL,
                 country TEXT,
-                industry TEXT,
+                corporate_sector TEXT,
                 business_risk_score TEXT,
                 financial_risk_score TEXT,
-                rating_date DATE,
                 source_file_path TEXT,
                 source_modified_at_utc TIMESTAMPTZ,
                 ingested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                UNIQUE (entity_key, document_version)
+                UNIQUE (company_key, document_version)
             );
             """
         )
 
         for statement in [
-            "ALTER TABLE raw.rating_assessments_history ALTER COLUMN entity_information TYPE JSONB USING entity_information::jsonb;",
+            "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS company_information JSONB;",
+            "ALTER TABLE raw.rating_assessments_history ALTER COLUMN company_information TYPE JSONB USING company_information::jsonb;",
             "ALTER TABLE raw.rating_assessments_history ALTER COLUMN methodology TYPE JSONB USING methodology::jsonb;",
             "ALTER TABLE raw.rating_assessments_history ALTER COLUMN industry_risk TYPE JSONB USING industry_risk::jsonb;",
             "ALTER TABLE raw.rating_assessments_history ALTER COLUMN business_risk_profile TYPE JSONB USING business_risk_profile::jsonb;",
@@ -106,12 +106,16 @@ class PostgresRepository:
             "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS extracted_payload JSONB;",
             "ALTER TABLE raw.rating_assessments_history DROP COLUMN IF EXISTS file_metadata;",
             "ALTER TABLE raw.rating_assessments_history DROP COLUMN IF EXISTS source_system;",
-            "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS entity_key TEXT;",
             "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS document_version INTEGER;",
-            "CREATE UNIQUE INDEX IF NOT EXISTS uq_rating_assessments_history_entity_version ON raw.rating_assessments_history (entity_key, document_version);",
+            "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS company_name TEXT;",
+            "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS company_key TEXT;",
+            "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS corporate_sector TEXT;",
+            "ALTER TABLE raw.rating_assessments_history DROP COLUMN IF EXISTS industry;",
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_rating_assessments_history_company_version ON raw.rating_assessments_history (company_key, document_version);",
             "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS source_file_path TEXT;",
             "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS source_modified_at_utc TIMESTAMPTZ;",
             "ALTER TABLE raw.rating_assessments_history DROP COLUMN IF EXISTS extracted_at;",
+            "ALTER TABLE raw.rating_assessments_history DROP COLUMN IF EXISTS rating_date;",
         ]:
             cur.execute(statement)
 
@@ -120,25 +124,24 @@ class PostgresRepository:
         WITH next_version AS (
             SELECT COALESCE(MAX(document_version), 0) + 1 AS version
             FROM raw.rating_assessments_history
-            WHERE entity_key = %s
+            WHERE company_key = %s
         )
         INSERT INTO raw.rating_assessments_history (
             record_hash,
-            entity_key,
+            company_key,
             document_version,
-            entity_information,
+            company_information,
             methodology,
             industry_risk,
             business_risk_profile,
             financial_risk_profile,
             credit_metrics,
             extracted_payload,
-            entity_name,
+            company_name,
             country,
-            industry,
+            corporate_sector,
             business_risk_score,
             financial_risk_score,
-            rating_date,
             source_file_path,
             source_modified_at_utc
         )
@@ -159,23 +162,26 @@ class PostgresRepository:
             %s,
             %s,
             %s,
-            %s,
             %s
         FROM next_version
         ON CONFLICT (record_hash) DO NOTHING
         RETURNING id;
         """
 
-        entity_information = payload.get("entity_information", {})
-        methodology = payload.get("methodology", {})
-        industry_risk = payload.get("industry_risk", {})
+        company_information = payload.get("company_information", {})
+        methodology = payload.get("company_information", {}).get("methodology") or payload.get(
+            "methodology", {}
+        )
+        industry_risk = payload.get("company_information", {}).get("industry_risk") or payload.get(
+            "industry_risk", {}
+        )
         business_risk_profile = payload.get("business_risk_profile", {})
         financial_risk_profile = payload.get("financial_risk_profile", {})
         credit_metrics = payload.get("credit_metrics", [])
-        entity_name = entity_information.get("name")
-        country = entity_information.get("country_of_origin")
-        industry = entity_information.get("industry")
-        entity_key = self.build_entity_key(entity_name, country, industry)
+        company_name = company_information.get("name")
+        country = company_information.get("country_of_origin")
+        corporate_sector = company_information.get("corporate_sector")
+        company_key = self.build_company_key(company_name, country)
         source_file_path, source_modified_at_utc = self.build_source_file_fields(source_file)
         canonical_payload = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
         record_hash = hashlib.sha256(canonical_payload.encode("utf-8")).hexdigest()
@@ -186,22 +192,21 @@ class PostgresRepository:
                 cur.execute(
                     sql_insert,
                     (
-                        entity_key,
+                        company_key,
                         record_hash,
-                        entity_key,
-                        Json(entity_information),
+                        company_key,
+                        Json(company_information),
                         Json(methodology),
                         Json(industry_risk),
                         Json(business_risk_profile),
                         Json(financial_risk_profile),
                         Json(credit_metrics),
                         Json(payload),
-                        entity_name,
+                        company_name,
                         country,
-                        industry,
+                        corporate_sector,
                         business_risk_profile.get("overall_score"),
                         financial_risk_profile.get("overall_score"),
-                        payload.get("rating_date"),
                         source_file_path,
                         source_modified_at_utc,
                     ),
