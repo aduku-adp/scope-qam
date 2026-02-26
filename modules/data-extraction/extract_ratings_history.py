@@ -22,7 +22,8 @@ def load_db_config(env_path):
 
 def ensure_table_and_insert(source_file: str, payload: dict, db_config: DbConfig) -> str | None:
     """Backward-compatible helper used by tests and callers."""
-    return PostgresRepository(db_config).insert_rating_assessment(source_file, payload)
+    inserted = PostgresRepository(db_config).insert_rating_assessment(source_file, payload)
+    return str(inserted["id"]) if inserted else None
 
 
 def build_app() -> tuple[RatingsExtractionPipeline, AppConfig]:
