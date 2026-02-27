@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-export SERVICE_URL="${SERVICE_URL:-http://localhost:8008}"
+export SERVICE_URL="${SERVICE_URL:-http://localhost:8000}"
 export IDENTITY="${IDENTITY:-local-test-identity}"
 
 export PG_HOST="${PG_HOST:-localhost}"

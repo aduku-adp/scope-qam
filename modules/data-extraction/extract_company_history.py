@@ -6,7 +6,7 @@ from __future__ import annotations
 from business_rules import BusinessRuleEngine
 from config import AppConfig, ConfigLoader, DbConfig, default_app_config
 from excel_extractor import MasterSheetExtractor
-from pipeline import RatingsExtractionPipeline
+from pipeline import CompanyExtractionPipeline
 from postgres_repository import PostgresRepository
 
 
@@ -26,7 +26,7 @@ def ensure_table_and_insert(source_file: str, payload: dict, db_config: DbConfig
     return str(inserted["id"]) if inserted else None
 
 
-def build_app() -> tuple[RatingsExtractionPipeline, AppConfig]:
+def build_app() -> tuple[CompanyExtractionPipeline, AppConfig]:
     app_config = default_app_config()
     db_config = ConfigLoader.load_db_config(app_config.env_file)
     extractor = MasterSheetExtractor(
@@ -35,7 +35,7 @@ def build_app() -> tuple[RatingsExtractionPipeline, AppConfig]:
     )
     repository = PostgresRepository(db_config)
     business_rules = BusinessRuleEngine(app_config.rules_file)
-    pipeline = RatingsExtractionPipeline(
+    pipeline = CompanyExtractionPipeline(
         app_config=app_config,
         extractor=extractor,
         repository=repository,

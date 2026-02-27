@@ -12,12 +12,12 @@ pytest.importorskip("pydantic")
 
 MODULE_PATH = (
     Path(__file__).resolve().parents[1]
-    / "extract_ratings_history.py"
+    / "extract_company_history.py"
 )
 MODULE_DIR = str(MODULE_PATH.parent)
 if MODULE_DIR not in sys.path:
     sys.path.insert(0, MODULE_DIR)
-SPEC = importlib.util.spec_from_file_location("extract_ratings_history", MODULE_PATH)
+SPEC = importlib.util.spec_from_file_location("extract_company_history", MODULE_PATH)
 MODULE = importlib.util.module_from_spec(SPEC)
 assert SPEC and SPEC.loader
 sys.modules[SPEC.name] = MODULE

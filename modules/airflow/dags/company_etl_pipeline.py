@@ -29,7 +29,7 @@ with DAG(
         task_id="extract_company_data",
         bash_command=(
             "cd /opt/airflow/repo/modules/data-extraction "
-            "&& python extract_ratings_history.py"
+            "&& python extract_company_history.py"
         ),
         env=DB_ENV,
         append_env=True,

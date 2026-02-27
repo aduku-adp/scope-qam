@@ -64,7 +64,7 @@ services:
   qam-api:
     image: ${API_IMAGE_NAME:-scope-qam-api:local}
     environment:
-      SERVICE_URL: ${SERVICE_URL:-http://localhost:8008}
+      SERVICE_URL: ${SERVICE_URL:-http://localhost:8000}
       IDENTITY: ${IDENTITY:-local-test-identity}
       PG_HOST: postgres
       PG_PORT: ${PG_PORT:-5432}
@@ -73,12 +73,18 @@ services:
       DB_NAME: ${DB_NAME:-qam_db}
       UPLOAD_FILE_SEARCH_DIRS: /data/corporates
     ports:
-      - "${API_PORT:-8008}:8080"
+      - "${API_PORT:-8000}:8080"
     volumes:
       - ./data/corporates:/data/corporates:ro
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
     restart: always
 
   redis:

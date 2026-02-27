@@ -12,7 +12,7 @@ from api.upload.models import UploadDetailsModel, UploadModel
 UPLOAD_ROW = {
     "upload_id": "11111111-1111-1111-1111-111111111111",
     "run_id": "22222222-2222-2222-2222-222222222222",
-    "pipeline_name": "extract_ratings_history",
+    "pipeline_name": "extract_company_history",
     "source_file_path": "/tmp/corporates_A_1.xlsm",
     "source_filename": "corporates_A_1.xlsm",
     "source_modified_at_utc": datetime(2026, 2, 25),
@@ -101,4 +101,3 @@ def test_stats_ok(provider):
 
     assert output.total_uploads == 3
     assert output.uploads_by_status == {"inserted": 2, "validation_failed": 1}
-

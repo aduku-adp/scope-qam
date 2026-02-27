@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import random
+import time
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -18,8 +20,15 @@ from pipeline_types import FileProcessLog, PipelineRunMetrics
 from postgres_repository import PostgresRepository
 from validation_models import validate_extracted_payload
 
+try:  # pragma: no cover - import fallback for tests without psycopg2 installed.
+    from psycopg2 import InterfaceError as PgInterfaceError
+    from psycopg2 import OperationalError as PgOperationalError
+except Exception:  # pragma: no cover
+    PgOperationalError = RuntimeError  # type: ignore[assignment]
+    PgInterfaceError = ConnectionError  # type: ignore[assignment]
 
-class RatingsExtractionPipeline:
+
+class CompanyExtractionPipeline:
     def __init__(
         self,
         app_config: AppConfig,
@@ -31,7 +40,35 @@ class RatingsExtractionPipeline:
         self.extractor = extractor
         self.repository = repository
         self.business_rules = business_rules
-        self.pipeline_name = "extract_ratings_history"
+        self.pipeline_name = "extract_company_history"
+        self.retry_attempts = 4
+        self.retry_base_seconds = 1.0
+        self.retry_max_seconds = 8.0
+
+    def _with_retry(self, operation_name: str, func, *args, **kwargs):
+        """Retry transient failures with exponential backoff + jitter."""
+        transient_exceptions = (
+            PgOperationalError,
+            PgInterfaceError,
+            ConnectionError,
+            TimeoutError,
+        )
+        attempt = 0
+        while True:
+            try:
+                return func(*args, **kwargs)
+            except transient_exceptions as exc:
+                attempt += 1
+                if attempt >= self.retry_attempts:
+                    raise
+                base = min(self.retry_base_seconds * (2 ** (attempt - 1)), self.retry_max_seconds)
+                jitter = random.uniform(0.0, 0.25)
+                sleep_for = base + jitter
+                print(
+                    f"{operation_name} transient failure (attempt {attempt}/{self.retry_attempts - 1}): "
+                    f"{exc}. Retrying in {sleep_for:.2f}s."
+                )
+                time.sleep(sleep_for)
 
     def _discover_incremental_files(self) -> list[Path]:
         data_dir = self.app_config.data_dir.resolve()
@@ -53,8 +90,12 @@ class RatingsExtractionPipeline:
         ]
         with_modified.sort(key=lambda item: item[1] or datetime.min.replace(tzinfo=UTC))
 
-        raw_cutoff = self.repository.get_incremental_cutoff()
-        state_cutoff = self.repository.get_pipeline_state_cutoff(self.pipeline_name)
+        raw_cutoff = self._with_retry("get_incremental_cutoff", self.repository.get_incremental_cutoff)
+        state_cutoff = self._with_retry(
+            "get_pipeline_state_cutoff",
+            self.repository.get_pipeline_state_cutoff,
+            self.pipeline_name,
+        )
 
         # If raw is empty, force full reload from DATA_DIR even if pipeline_state exists.
         if raw_cutoff is None:
@@ -78,9 +119,14 @@ class RatingsExtractionPipeline:
         max_processed_modified_at: datetime | None = None
 
         try:
-            self.repository.ensure_rating_assessments_schema()
-            self.repository.ensure_observability_schema()
-            self.repository.insert_pipeline_run_start(
+            self._with_retry(
+                "ensure_rating_assessments_schema",
+                self.repository.ensure_rating_assessments_schema,
+            )
+            self._with_retry("ensure_observability_schema", self.repository.ensure_observability_schema)
+            self._with_retry(
+                "insert_pipeline_run_start",
+                self.repository.insert_pipeline_run_start,
                 run_id=metrics.run_id,
                 pipeline_name=self.pipeline_name,
                 started_at=metrics.started_at,
@@ -114,7 +160,11 @@ class RatingsExtractionPipeline:
             )
 
             try:
-                raw_payload = self.extractor.extract_workbook(workbook_path)
+                raw_payload = self._with_retry(
+                    "extract_workbook",
+                    self.extractor.extract_workbook,
+                    workbook_path,
+                )
             except BadZipFile:
                 message = f"Skipped invalid Excel file (not a zip workbook): {workbook_path}"
                 print(message)
@@ -262,7 +312,12 @@ class RatingsExtractionPipeline:
                     continue
 
             try:
-                inserted = self.repository.insert_rating_assessment(str(workbook_path), payload)
+                inserted = self._with_retry(
+                    "insert_rating_assessment",
+                    self.repository.insert_rating_assessment,
+                    str(workbook_path),
+                    payload,
+                )
             except Exception as exc:
                 message = f"Load failed for {workbook_path.name}: {exc}"
                 print(message)
