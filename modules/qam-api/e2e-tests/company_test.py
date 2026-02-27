@@ -7,6 +7,7 @@ from helpers.constants import SERVICE_URL
 
 BASE_URL = f"{SERVICE_URL}/v1/companies"
 SNAPSHOT_BASE_URL = f"{SERVICE_URL}/v1/snapshots"
+UPLOAD_BASE_URL = f"{SERVICE_URL}/v1/uploads"
 
 
 def _service_or_skip(connectors: Connectors):
@@ -151,3 +152,53 @@ def test_e2e_get_snapshot_ok(connectors: Connectors):
     payload = _json_payload_or_fail(response)
     assert payload["status"] == "OK"
     assert payload["data"]["snapshot_id"] == snapshot_id
+
+
+def test_e2e_list_uploads_ok(connectors: Connectors):
+    """GET /v1/uploads returns upload metadata list."""
+    response = connectors.requester.get(UPLOAD_BASE_URL, timeout=10)
+    assert response.status_code == 200
+    payload = _json_payload_or_fail(response)
+    assert payload["status"] == "OK"
+    assert isinstance(payload["data"], list)
+
+
+def test_e2e_upload_stats_ok(connectors: Connectors):
+    """GET /v1/uploads/stats returns upload metrics."""
+    response = connectors.requester.get(f"{UPLOAD_BASE_URL}/stats", timeout=10)
+    assert response.status_code == 200
+    payload = _json_payload_or_fail(response)
+    assert payload["status"] == "OK"
+    assert isinstance(payload["data"], dict)
+    assert "total_uploads" in payload["data"]
+
+
+def test_e2e_upload_details_ok(connectors: Connectors):
+    """GET /v1/uploads/{upload_id}/details returns one upload details payload."""
+    list_response = connectors.requester.get(UPLOAD_BASE_URL, timeout=10)
+    assert list_response.status_code == 200
+    uploads = _json_payload_or_fail(list_response)["data"]
+    if not uploads:
+        raise AssertionError("No uploads available to validate upload details endpoint")
+    upload_id = uploads[0]["upload_id"]
+
+    response = connectors.requester.get(f"{UPLOAD_BASE_URL}/{upload_id}/details", timeout=10)
+    assert response.status_code == 200
+    payload = _json_payload_or_fail(response)
+    assert payload["status"] == "OK"
+    assert payload["data"]["upload"]["upload_id"] == upload_id
+
+
+def test_e2e_upload_file_ok(connectors: Connectors):
+    """GET /v1/uploads/{upload_id}/file downloads the source file when available."""
+    list_response = connectors.requester.get(UPLOAD_BASE_URL, timeout=10)
+    assert list_response.status_code == 200
+    uploads = _json_payload_or_fail(list_response)["data"]
+    if not uploads:
+        raise AssertionError("No uploads available to validate upload file endpoint")
+    upload_id = uploads[0]["upload_id"]
+
+    response = connectors.requester.get(f"{UPLOAD_BASE_URL}/{upload_id}/file", timeout=10)
+    assert response.status_code == 200
+    disposition = response.headers.get("content-disposition", "").lower()
+    assert "attachment;" in disposition

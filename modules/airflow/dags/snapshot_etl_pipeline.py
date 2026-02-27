@@ -17,7 +17,7 @@ DB_ENV = {
 
 with DAG(
     dag_id="snapshot_etl_pipeline",
-    description="Extract ratings, run snapshot dbt model, then snapshot dbt tests",
+    description="Run snapshot dbt model and tests for snap_company",
     start_date=datetime(2026, 2, 1),
     schedule="@daily",
     catchup=False,
@@ -25,8 +25,8 @@ with DAG(
 ) as dag:
     start = EmptyOperator(task_id="start")
 
-    dbt_run = BashOperator(
-        task_id="dbt_run",
+    run_dbt_models = BashOperator(
+        task_id="run_dbt_models",
         bash_command=(
             "cd /opt/airflow/repo/modules/dbt_qam "
             "&& dbt run --profiles-dir /opt/airflow/repo/modules/dbt_qam --target airflow --select snap_company"
@@ -35,8 +35,8 @@ with DAG(
         append_env=True,
     )
 
-    dbt_test = BashOperator(
-        task_id="dbt_test",
+    run_dbt_tests = BashOperator(
+        task_id="run_dbt_tests",
         bash_command=(
             "cd /opt/airflow/repo/modules/dbt_qam "
             "&& dbt test --profiles-dir /opt/airflow/repo/modules/dbt_qam --target airflow --select snap_company"
@@ -47,4 +47,4 @@ with DAG(
 
     end = EmptyOperator(task_id="end")
 
-    start >> dbt_run >> dbt_test >> end
+    start >> run_dbt_models >> run_dbt_tests >> end

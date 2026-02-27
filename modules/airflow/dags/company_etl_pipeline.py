@@ -17,7 +17,7 @@ DB_ENV = {
 
 with DAG(
     dag_id="company_etl_pipeline",
-    description="Extract ratings, run dbt models, then dbt tests",
+    description="Extract company data, run dbt core models, then dbt tests",
     start_date=datetime(2026, 2, 1),
     schedule="@daily",
     catchup=False,
@@ -25,8 +25,8 @@ with DAG(
 ) as dag:
     start = EmptyOperator(task_id="start")
 
-    extract_ratings_history = BashOperator(
-        task_id="extract_ratings_history",
+    extract_company_data = BashOperator(
+        task_id="extract_company_data",
         bash_command=(
             "cd /opt/airflow/repo/modules/data-extraction "
             "&& python extract_ratings_history.py"
@@ -35,8 +35,8 @@ with DAG(
         append_env=True,
     )
 
-    dbt_run = BashOperator(
-        task_id="dbt_run",
+    run_dbt_models = BashOperator(
+        task_id="run_dbt_models",
         bash_command=(
             "cd /opt/airflow/repo/modules/dbt_qam "
             "&& dbt run --profiles-dir /opt/airflow/repo/modules/dbt_qam --target airflow --exclude snap_company"
@@ -45,8 +45,8 @@ with DAG(
         append_env=True,
     )
 
-    dbt_test = BashOperator(
-        task_id="dbt_test",
+    run_dbt_tests = BashOperator(
+        task_id="run_dbt_tests",
         bash_command=(
             "cd /opt/airflow/repo/modules/dbt_qam "
             "&& dbt test --profiles-dir /opt/airflow/repo/modules/dbt_qam --target airflow --exclude snap_company"
@@ -57,4 +57,4 @@ with DAG(
 
     end = EmptyOperator(task_id="end")
 
-    start >> extract_ratings_history >> dbt_run >> dbt_test >> end
+    start >> extract_company_data >> run_dbt_models >> run_dbt_tests >> end

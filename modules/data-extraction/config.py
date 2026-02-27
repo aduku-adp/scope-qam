@@ -71,7 +71,7 @@ def default_app_config() -> AppConfig:
     project_root = Path(__file__).resolve().parents[2]
     return AppConfig(
         project_root=project_root,
-        data_dir=project_root / "data",
+        data_dir=project_root / "data" / "corporates",
         env_file=project_root / ".env",
         rules_file=project_root / "modules" / "data-extraction" / "business_rules.yml",
     )

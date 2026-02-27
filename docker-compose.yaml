@@ -71,8 +71,11 @@ services:
       PG_USER: ${PG_USER:-postgres}
       PG_PASSWORD: ${PG_PASSWORD:-postgres}
       DB_NAME: ${DB_NAME:-qam_db}
+      UPLOAD_FILE_SEARCH_DIRS: /data/corporates
     ports:
       - "${API_PORT:-8008}:8080"
+    volumes:
+      - ./data/corporates:/data/corporates:ro
     depends_on:
       postgres:
         condition: service_healthy
