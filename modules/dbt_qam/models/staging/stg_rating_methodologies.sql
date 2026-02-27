@@ -1,7 +1,7 @@
 with base as (
     select
         record_hash,
-        company_key,
+        company_id,
         document_version,
         company_name,
         source_modified_date,
@@ -13,7 +13,7 @@ with base as (
 exploded as (
     select
         b.record_hash,
-        b.company_key,
+        b.company_id,
         b.document_version,
         b.company_name,
         b.source_modified_date,

@@ -1,7 +1,7 @@
 with base as (
     select
         record_hash,
-        company_key,
+        company_id,
         document_version,
         company_name,
         source_modified_date,
@@ -13,7 +13,7 @@ with base as (
 metrics as (
     select
         b.record_hash,
-        b.company_key,
+        b.company_id,
         b.document_version,
         b.company_name,
         b.source_modified_date,
@@ -26,7 +26,7 @@ metrics as (
 metric_values as (
     select
         m.record_hash,
-        m.company_key,
+        m.company_id,
         m.document_version,
         m.company_name,
         m.source_modified_date,
@@ -40,7 +40,7 @@ metric_values as (
 )
 select
     record_hash,
-    company_key,
+    company_id,
     document_version,
     company_name,
     source_modified_date,

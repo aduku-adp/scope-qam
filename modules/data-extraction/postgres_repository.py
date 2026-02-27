@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -49,9 +50,11 @@ class PostgresRepository:
             return None
 
     @staticmethod
-    def build_company_key(company_name: str | None, country: str | None) -> str:
-        key_material = f"{company_name or ''}|{country or ''}"
-        return hashlib.md5(key_material.encode("utf-8")).hexdigest()
+    def build_company_id(company_name: str | None) -> str:
+        base = (company_name or "").strip().lower()
+        normalized = re.sub(r"[^a-z0-9]+", "_", base)
+        normalized = re.sub(r"_+", "_", normalized).strip("_")
+        return normalized or "unknown_company"
 
     def get_incremental_cutoff(self) -> datetime | None:
         sql = "SELECT MAX(source_modified_at_utc) FROM raw.rating_assessments_history;"
@@ -112,7 +115,7 @@ class PostgresRepository:
                 financial_risk_profile JSONB NOT NULL,
                 credit_metrics JSONB NOT NULL,
                 extracted_payload JSONB NOT NULL,
-                company_key TEXT NOT NULL,
+                company_id TEXT NOT NULL,
                 document_version INTEGER NOT NULL,
                 company_name TEXT NOT NULL,
                 country TEXT,
@@ -123,7 +126,7 @@ class PostgresRepository:
                 source_file_path TEXT,
                 source_modified_at_utc TIMESTAMPTZ,
                 ingested_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-                UNIQUE (company_key, document_version)
+                UNIQUE (company_id, document_version)
             );
             """
         )
@@ -135,17 +138,36 @@ class PostgresRepository:
             "ALTER TABLE raw.rating_assessments_history DROP COLUMN IF EXISTS source_system;",
             "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS document_version INTEGER;",
             "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS company_name TEXT;",
-            "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS company_key TEXT;",
+            "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS company_id TEXT;",
             "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS corporate_sector TEXT;",
             "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS segmentation_criteria TEXT;",
             "ALTER TABLE raw.rating_assessments_history DROP COLUMN IF EXISTS industry;",
-            "CREATE UNIQUE INDEX IF NOT EXISTS uq_rating_assessments_history_company_version ON raw.rating_assessments_history (company_key, document_version);",
+            "CREATE UNIQUE INDEX IF NOT EXISTS uq_rating_assessments_history_company_version ON raw.rating_assessments_history (company_id, document_version);",
             "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS source_file_path TEXT;",
             "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS source_modified_at_utc TIMESTAMPTZ;",
             "ALTER TABLE raw.rating_assessments_history DROP COLUMN IF EXISTS extracted_at;",
             "ALTER TABLE raw.rating_assessments_history DROP COLUMN IF EXISTS rating_date;",
         ]:
             cur.execute(statement)
+        cur.execute(
+            """
+            ALTER TABLE raw.rating_assessments_history
+            DROP CONSTRAINT IF EXISTS rating_assessments_history_company_key_document_version_key;
+            """
+        )
+        cur.execute(
+            """
+            ALTER TABLE raw.rating_assessments_history
+            DROP CONSTRAINT IF EXISTS rating_assessments_history_company_id_document_version_key;
+            """
+        )
+        cur.execute(
+            """
+            ALTER TABLE raw.rating_assessments_history
+            ADD CONSTRAINT rating_assessments_history_company_id_document_version_key
+            UNIQUE (company_id, document_version);
+            """
+        )
 
         jsonb_columns = [
             "company_information",
@@ -189,6 +211,17 @@ class PostgresRepository:
                       AND industry_risk ? 'segmentation_criteria'
                   )
               );
+            """
+        )
+        cur.execute(
+            """
+            UPDATE raw.rating_assessments_history
+            SET company_id = nullif(
+                btrim(lower(regexp_replace(company_name, '[^a-zA-Z0-9]+', '_', 'g')), '_'),
+                ''
+            )
+            WHERE (company_id IS NULL OR company_id = '')
+              AND company_name IS NOT NULL;
             """
         )
         cur.execute(
@@ -331,11 +364,11 @@ class PostgresRepository:
         WITH next_version AS (
             SELECT COALESCE(MAX(document_version), 0) + 1 AS version
             FROM raw.rating_assessments_history
-            WHERE company_key = %s
+            WHERE company_id = %s
         )
         INSERT INTO raw.rating_assessments_history (
             record_hash,
-            company_key,
+            company_id,
             document_version,
             company_information,
             methodology,
@@ -391,7 +424,7 @@ class PostgresRepository:
         country = company_information.get("country_of_origin")
         corporate_sector = company_information.get("corporate_sector")
         segmentation_criteria = company_information.get("segmentation_criteria")
-        company_key = self.build_company_key(company_name, country)
+        company_id = self.build_company_id(company_name)
         source_file_path, source_modified_at_utc = self.build_source_file_fields(source_file)
         canonical_payload = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
         record_hash = hashlib.sha256(canonical_payload.encode("utf-8")).hexdigest()
@@ -402,9 +435,9 @@ class PostgresRepository:
                 cur.execute(
                     sql_insert,
                     (
-                        company_key,
+                        company_id,
                         record_hash,
-                        company_key,
+                        company_id,
                         Json(company_information),
                         Json(methodology),
                         Json(industry_risk),

@@ -57,3 +57,10 @@ venv.bak/
 *.DS_Store*
 .DS_Store
 /data/pg_data_qam/
+
+*.pytest_cache
+
+*.pyc
+*.pyo
+*__pycache__
+*.coverage

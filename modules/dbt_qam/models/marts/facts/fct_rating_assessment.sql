@@ -5,7 +5,7 @@ with base as (
 select
     md5(record_hash) as assessment_key,
     record_hash,
-    company_key,
+    company_id,
     document_version,
     to_char(source_modified_date, 'YYYYMMDD')::int as source_modified_date_key,
     source_modified_date,

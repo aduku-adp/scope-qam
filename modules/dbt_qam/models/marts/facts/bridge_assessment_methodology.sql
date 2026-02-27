@@ -13,7 +13,7 @@ methodology_joined as (
 select
     md5(record_hash || '|' || methodology_name || '|' || document_version::text) as assessment_methodology_key,
     record_hash,
-    company_key,
+    company_id,
     document_version,
     to_char(source_modified_date, 'YYYYMMDD')::int as source_modified_date_key,
     methodology_key,

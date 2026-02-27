@@ -53,11 +53,14 @@ class RatingsExtractionPipeline:
         ]
         with_modified.sort(key=lambda item: item[1] or datetime.min.replace(tzinfo=UTC))
 
-        cutoff = self.repository.get_pipeline_state_cutoff(self.pipeline_name)
-        if cutoff is None:
-            cutoff = self.repository.get_incremental_cutoff()
-        if cutoff is None:
+        raw_cutoff = self.repository.get_incremental_cutoff()
+        state_cutoff = self.repository.get_pipeline_state_cutoff(self.pipeline_name)
+
+        # If raw is empty, force full reload from DATA_DIR even if pipeline_state exists.
+        if raw_cutoff is None:
             return [path for path, _ in with_modified]
+
+        cutoff = max(raw_cutoff, state_cutoff) if state_cutoff is not None else raw_cutoff
 
         return [
             path for path, modified_at in with_modified if modified_at is not None and modified_at >= cutoff

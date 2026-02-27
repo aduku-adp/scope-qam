@@ -20,7 +20,7 @@ select
         document_version::text
     ) as assessment_industry_risk_key,
     record_hash,
-    company_key,
+    company_id,
     document_version,
     to_char(source_modified_date, 'YYYYMMDD')::int as source_modified_date_key,
     industry_risk_key,

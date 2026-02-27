@@ -65,7 +65,13 @@ def test_ensure_table_and_insert_sets_record_hash_and_returns_id():
     payload = _sample_payload()
     cfg = MODULE.DbConfig(host="h", port=5432, user="u", password="p", dbname="d")
 
-    conn, cur = _mock_conn_with_fetchone(("11111111-1111-1111-1111-111111111111",))
+    conn, cur = _mock_conn_with_fetchone(
+        (
+            "11111111-1111-1111-1111-111111111111",
+            1,
+            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        )
+    )
 
     with patch.object(REPO_MODULE.psycopg2, "connect", return_value=conn):
         inserted_id = MODULE.ensure_table_and_insert("data/corporates_A_2.xlsm", payload, cfg)
@@ -87,12 +93,10 @@ def test_ensure_table_and_insert_sets_record_hash_and_returns_id():
     expected_hash = hashlib.sha256(
         json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
     ).hexdigest()
-    expected_company_key = hashlib.md5(
-        "Company A|Federal Republic of Germany".encode("utf-8")
-    ).hexdigest()
-    assert insert_params[0] == expected_company_key
+    expected_company_id = "company_a"
+    assert insert_params[0] == expected_company_id
     assert insert_params[1] == expected_hash
-    assert insert_params[2] == expected_company_key
+    assert insert_params[2] == expected_company_id
     assert insert_params[3].adapted == payload["company_information"]
     assert insert_params[4].adapted == payload["company_information"]["methodology"]
     assert insert_params[5].adapted == payload["company_information"]["industry_risk"]

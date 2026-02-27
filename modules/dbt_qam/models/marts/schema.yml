@@ -7,7 +7,7 @@ models:
         tests:
           - not_null
           - unique
-      - name: company_key
+      - name: company_id
         tests:
           - not_null
       - name: company_name

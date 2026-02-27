@@ -13,7 +13,7 @@ metric_joined as (
 select
     md5(record_hash || '|' || metric_name || '|' || year_label || '|' || document_version::text) as credit_metric_value_key,
     record_hash,
-    company_key,
+    company_id,
     document_version,
     metric_key,
     to_char(source_modified_date, 'YYYYMMDD')::int as source_modified_date_key,

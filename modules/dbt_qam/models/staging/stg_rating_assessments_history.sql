@@ -6,7 +6,7 @@ normalized as (
     select
         id,
         record_hash,
-        company_key,
+        company_id,
         document_version,
         company_information as company_information_json,
         coalesce(methodology, company_information -> 'methodology') as methodology_json,
@@ -38,7 +38,7 @@ parsed as (
 select
     id,
     record_hash,
-    company_key,
+    company_id,
     document_version,
     coalesce(company_name, company_information_json ->> 'name') as company_name,
     coalesce(country, company_information_json ->> 'country_of_origin') as country,
@@ -55,8 +55,8 @@ select
         from jsonb_array_elements(industry_risk_list_json) with ordinality as e(elem, ord)
     ) as industry_risk_score,
     (
-        select sum(nullif(elem ->> 'industry_weight', '')::numeric)
-        from jsonb_array_elements(industry_risk_list_json) as e(elem)
+        select string_agg(nullif(elem ->> 'industry_weight', ''), ' | ' order by ord)
+        from jsonb_array_elements(industry_risk_list_json) with ordinality as e(elem, ord)
     ) as industry_weight,
     coalesce(
         segmentation_criteria,

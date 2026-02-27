@@ -61,6 +61,23 @@ services:
       start_period: 5s
     restart: always
 
+  qam-api:
+    image: ${API_IMAGE_NAME:-scope-qam-api:local}
+    environment:
+      SERVICE_URL: ${SERVICE_URL:-http://localhost:8008}
+      IDENTITY: ${IDENTITY:-local-test-identity}
+      PG_HOST: postgres
+      PG_PORT: ${PG_PORT:-5432}
+      PG_USER: ${PG_USER:-postgres}
+      PG_PASSWORD: ${PG_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-qam_db}
+    ports:
+      - "${API_PORT:-8008}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+
   redis:
     # Redis is limited to 7.2-bookworm due to licencing change
     # https://redis.io/blog/redis-adopts-dual-source-available-licensing/

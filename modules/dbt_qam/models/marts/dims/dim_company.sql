@@ -1,6 +1,6 @@
 with base as (
     select
-        company_key,
+        company_id,
         company_name,
         country,
         corporate_sector,
@@ -34,7 +34,7 @@ ordered as (
             coalesce(fiscal_year_end, '') || '|' ||
             coalesce(industry_classification, '') || '|' ||
             coalesce(industry_risk_score, '') || '|' ||
-            coalesce(industry_weight::text, '') || '|' ||
+            coalesce(industry_weight, '') || '|' ||
             coalesce(segmentation_criteria, '') || '|' ||
             coalesce(rating_methodologies_applied, '')
         ) as attribute_hash,
@@ -48,19 +48,19 @@ ordered as (
                 coalesce(fiscal_year_end, '') || '|' ||
                 coalesce(industry_classification, '') || '|' ||
                 coalesce(industry_risk_score, '') || '|' ||
-                coalesce(industry_weight::text, '') || '|' ||
+                coalesce(industry_weight, '') || '|' ||
                 coalesce(segmentation_criteria, '') || '|' ||
                 coalesce(rating_methodologies_applied, '')
             )
         ) over (
-            partition by company_key
+            partition by company_id
             order by effective_ts, document_version, record_hash
         ) as prev_attribute_hash
     from base
 ),
 change_points as (
     select
-        company_key,
+        company_id,
         company_name,
         country,
         corporate_sector,
@@ -79,7 +79,7 @@ change_points as (
 ),
 scd_rows as (
     select
-        company_key,
+        company_id,
         company_name,
         country,
         corporate_sector,
@@ -94,14 +94,14 @@ scd_rows as (
         document_version,
         start_at,
         lead(start_at) over (
-            partition by company_key
+            partition by company_id
             order by start_at, document_version
         ) as end_at
     from change_points
 )
 select
-    md5(company_key || '|' || start_at::text) as company_scd_key,
-    company_key,
+    md5(company_id || '|' || start_at::text) as company_scd_key,
+    company_id,
     company_name,
     country,
     corporate_sector,
