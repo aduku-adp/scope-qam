@@ -12,6 +12,7 @@ from api.company.service import CompanyService
 
 
 LOGGER = logging.getLogger(__name__)
+COMPANY_TAG = "Company Endpoints"
 
 
 def build(
@@ -23,6 +24,7 @@ def build(
 
     @router.get(
         "/companies",
+        tags=[COMPANY_TAG],
         responses={
             500: {"description": "Server error", "model": ErrorModel},
             404: {"description": "Not Found", "model": ErrorModel},
@@ -42,6 +44,7 @@ def build(
 
     @router.get(
         "/companies/{company_id}",
+        tags=[COMPANY_TAG],
         responses={
             500: {"description": "Server error", "model": ErrorModel},
             404: {"description": "Not Found", "model": ErrorModel},

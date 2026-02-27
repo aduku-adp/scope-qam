@@ -4,9 +4,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Generator, Optional
+from typing import Optional
 
-import psycopg2
 from psycopg2.extensions import connection as PgConnection
 from psycopg2.extras import RealDictCursor
 from api.company.models import CompanyModel
