@@ -41,3 +41,6 @@ models:
       facts:
         +materialized: table
         +schema: facts
+    snapshots:
+      +materialized: table
+      +schema: snapshots

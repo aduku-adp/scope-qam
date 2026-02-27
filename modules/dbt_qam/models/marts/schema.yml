@@ -74,6 +74,35 @@ models:
           - not_null
       - name: metric_value
 
+  - name: fct_company_timeseries
+    columns:
+      - name: timeseries_key
+        tests:
+          - not_null
+          - unique
+      - name: company_id
+        tests:
+          - not_null
+      - name: document_version
+        tests:
+          - not_null
+      - name: event_time
+        tests:
+          - not_null
+      - name: source_modified_date_key
+      - name: dim_full_date
+      - name: dim_year
+      - name: dim_month
+      - name: dim_day
+      - name: dim_year_month
+      - name: dim_quarter
+      - name: series_type
+        tests:
+          - not_null
+      - name: series_name
+        tests:
+          - not_null
+
   - name: bridge_assessment_methodology
     columns:
       - name: assessment_methodology_key

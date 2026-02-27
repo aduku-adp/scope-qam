@@ -10,6 +10,9 @@ from fastapi import APIRouter, FastAPI
 from api.company import controller as company_controller
 from api.company.service import CompanyService
 from api.providers.company_provider import CompanyProvider
+from api.providers.snapshot_provider import SnapshotProvider
+from api.snapshot import controller as snapshot_controller
+from api.snapshot.service import SnapshotService
 from helpers.constants import (
     API_DESCRIPTION,
     API_TITLE,
@@ -38,6 +41,18 @@ def _build_company_service() -> CompanyService:
     return CompanyService(company_provider=CompanyProvider(connection=conn))
 
 
+def _build_snapshot_service() -> SnapshotService:
+    conn = psycopg2.connect(
+        host=PG_HOST,
+        port=PG_PORT,
+        dbname=PG_DATABASE,
+        user=PG_USER,
+        password=PG_PASSWORD,
+    )
+    conn.set_session(readonly=True, autocommit=True)
+    return SnapshotService(snapshot_provider=SnapshotProvider(connection=conn))
+
+
 def make_app(is_local_runtime: bool = False) -> FastAPI:
     """Create and wire the FastAPI application."""
     _ = is_local_runtime
@@ -49,9 +64,11 @@ def make_app(is_local_runtime: bool = False) -> FastAPI:
         version=API_VERSION,
     )
 
-    service = _build_company_service()
+    company_service = _build_company_service()
+    snapshot_service = _build_snapshot_service()
     router = APIRouter()
-    company_controller.build(router=router, service=service)
+    company_controller.build(router=router, service=company_service)
+    snapshot_controller.build(router=router, service=snapshot_service)
     app.include_router(router, prefix=f"/{API_VERSION_PATH}")
 
     return app

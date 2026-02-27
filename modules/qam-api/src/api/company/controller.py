@@ -1,11 +1,14 @@
 """Qam API."""
 
 import logging
+from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Query
 from helpers.formatter import ErrorModel, OutputModel, format_response
 from api.company.models import (
+    CompanyCompareResultModel,
+    CompanyHistoryPointModel,
     CompanyModel,
 )
 from api.company.service import CompanyService
@@ -43,6 +46,48 @@ def build(
         return format_response(members)
 
     @router.get(
+        "/companies/compare",
+        tags=[COMPANY_TAG],
+        responses={
+            400: {"description": "Invalid request", "model": ErrorModel},
+            500: {"description": "Server error", "model": ErrorModel},
+            404: {"description": "Not Found", "model": ErrorModel},
+        },
+        response_model_exclude_none=True,
+    )
+    async def compare_companies(
+        company_ids: Annotated[
+            str,
+            Query(
+                description="Comma-separated company ids to compare.",
+                examples=["company_a,company_b"],
+            ),
+        ],
+        as_of_date: Annotated[
+            datetime | None,
+            Query(
+                description="Optional point-in-time filter in ISO-8601 format.",
+                examples=["2026-02-25T00:00:00Z"],
+            ),
+        ] = None,
+    ) -> OutputModel[CompanyCompareResultModel]:
+        """Compare multiple companies at latest or at a specific point in time."""
+        LOGGER.debug("controller.get: Compare companies")
+
+        parsed_ids = [item.strip() for item in company_ids.split(",") if item.strip()]
+        if not parsed_ids:
+            raise HTTPException(status_code=400, detail="company_ids must include at least one id")
+
+        try:
+            compared = service.compare_companies_with_diffs(
+                parsed_ids, as_of_date=as_of_date
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+        return format_response(compared)
+
+    @router.get(
         "/companies/{company_id}",
         tags=[COMPANY_TAG],
         responses={
@@ -66,3 +111,79 @@ def build(
             raise HTTPException(status_code=404, detail=str(exc)) from exc
 
         return format_response(company)
+
+    @router.get(
+        "/companies/{company_id}/versions",
+        tags=[COMPANY_TAG],
+        responses={
+            500: {"description": "Server error", "model": ErrorModel},
+            404: {"description": "Not Found", "model": ErrorModel},
+        },
+        response_model_exclude_none=True,
+    )
+    async def get_company_versions(
+        company_id: Annotated[
+            str,
+            Path(description="Company id", examples=["company_b"]),
+        ],
+    ) -> OutputModel[list[CompanyModel]]:
+        """Get all versions for a company."""
+        LOGGER.debug("controller.get: Get all versions for a company")
+
+        try:
+            versions = service.get_company_versions(company_id)
+        except Exception as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+        return format_response(versions)
+
+    @router.get(
+        "/companies/{company_id}/history",
+        tags=[COMPANY_TAG],
+        responses={
+            500: {"description": "Server error", "model": ErrorModel},
+            404: {"description": "Not Found", "model": ErrorModel},
+        },
+        response_model_exclude_none=True,
+    )
+    async def get_company_history(
+        company_id: Annotated[
+            str,
+            Path(description="Company id", examples=["company_b"]),
+        ],
+        series_type: Annotated[
+            str | None,
+            Query(
+                description="Optional series type filter (e.g. rating, credit_metric).",
+                examples=["rating"],
+            ),
+        ] = None,
+        series_name: Annotated[
+            str | None,
+            Query(
+                description="Optional series name filter (e.g. business_risk_score).",
+                examples=["business_risk_score"],
+            ),
+        ] = None,
+        year_label: Annotated[
+            str | None,
+            Query(
+                description="Optional year label filter (e.g. 2025E).",
+                examples=["2025E"],
+            ),
+        ] = None,
+    ) -> OutputModel[list[CompanyHistoryPointModel]]:
+        """Get time-series data for analysis."""
+        LOGGER.debug("controller.get: Get time-series history for a company")
+
+        try:
+            history = service.get_company_history(
+                company_id,
+                series_type=series_type,
+                series_name=series_name,
+                year_label=year_label,
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+        return format_response(history)

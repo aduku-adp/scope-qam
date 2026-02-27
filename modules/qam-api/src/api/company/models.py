@@ -6,7 +6,7 @@ from typing import Optional
 from pydantic import BaseModel, Field, model_validator
 
 
-from datetime import datetime
+from datetime import date, datetime
 
 
 class CompanyModel(BaseModel):
@@ -134,3 +134,72 @@ class CompanyModel(BaseModel):
             raise ValueError("document_version must be >= 1")
 
         return self
+
+
+class CompanyHistoryPointModel(BaseModel):
+    """Time-series point for company analysis."""
+
+    timeseries_key: str = Field(
+        description="Unique key for the normalized time-series point.",
+        examples=["5a9036bc3f490fd304f4c2c292e6388f"],
+    )
+
+    company_id: str = Field(
+        description="Business identifier of the company.",
+        examples=["company_b"],
+    )
+
+    document_version: int = Field(
+        description="Version number associated with this time-series point.",
+        examples=[2],
+        ge=1,
+    )
+
+    source_modified_at_utc: Optional[datetime] = Field(default=None)
+    event_time: datetime = Field(
+        description="Timestamp of the time-series event.",
+        examples=["2026-02-25T22:37:26.360512Z"],
+    )
+    source_file_path: Optional[str] = Field(default=None)
+    source_modified_date_key: Optional[int] = Field(default=None)
+    source_modified_date: Optional[date] = Field(default=None)
+    dim_full_date: Optional[date] = Field(default=None)
+    dim_year: Optional[int] = Field(default=None)
+    dim_month: Optional[int] = Field(default=None)
+    dim_day: Optional[int] = Field(default=None)
+    dim_year_month: Optional[str] = Field(default=None)
+    dim_quarter: Optional[int] = Field(default=None)
+    series_type: str = Field(
+        description="Series domain, e.g. rating or credit_metric.",
+        examples=["credit_metric"],
+    )
+    series_name: str = Field(
+        description="Series identifier/name.",
+        examples=["scope_adjusted_debt_ebitda"],
+    )
+    series_value: str = Field(
+        description="Series value represented as text.",
+        examples=["18.49"],
+    )
+    year_label: Optional[str] = Field(default=None)
+    is_estimate: Optional[bool] = Field(default=None)
+
+
+class CompanyComparisonDiffModel(BaseModel):
+    """Diff payload for one compared column."""
+
+    column: str = Field(
+        description="Column name that differs across compared companies.",
+        examples=["country"],
+    )
+    values_by_company_id: dict[str, str | int | float | bool | datetime | None] = Field(
+        description="Per-company value for this column.",
+        examples=[{"company_a": "DE", "company_b": "CH"}],
+    )
+
+
+class CompanyCompareResultModel(BaseModel):
+    """Comparison output containing selected companies and detected diffs."""
+
+    companies: list[CompanyModel]
+    diffs: list[CompanyComparisonDiffModel]

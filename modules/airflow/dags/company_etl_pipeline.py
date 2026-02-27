@@ -16,7 +16,7 @@ DB_ENV = {
 
 
 with DAG(
-    dag_id="ratings_etl_pipeline",
+    dag_id="company_etl_pipeline",
     description="Extract ratings, run dbt models, then dbt tests",
     start_date=datetime(2026, 2, 1),
     schedule="@daily",
@@ -39,7 +39,7 @@ with DAG(
         task_id="dbt_run",
         bash_command=(
             "cd /opt/airflow/repo/modules/dbt_qam "
-            "&& dbt run --profiles-dir /opt/airflow/repo/modules/dbt_qam --target airflow"
+            "&& dbt run --profiles-dir /opt/airflow/repo/modules/dbt_qam --target airflow --exclude snap_company"
         ),
         env=DB_ENV,
         append_env=True,
@@ -49,7 +49,7 @@ with DAG(
         task_id="dbt_test",
         bash_command=(
             "cd /opt/airflow/repo/modules/dbt_qam "
-            "&& dbt test --profiles-dir /opt/airflow/repo/modules/dbt_qam --target airflow"
+            "&& dbt test --profiles-dir /opt/airflow/repo/modules/dbt_qam --target airflow --exclude snap_company"
         ),
         env=DB_ENV,
         append_env=True,
