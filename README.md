@@ -12,7 +12,7 @@ Corporate credit rating data platform with:
 - dbt transformations: [modules/dbt_qam/README.md](/modules/dbt_qam/README.md)
 - Airflow orchestration: [modules/airflow/README.md](/modules/airflow/README.md)
 - API service: [modules/qam-api/README.md](/modules/qam-api/README.md)
-- Architecture diagram: [/images/qam-architecture.png](/images/qam-architecture.png)
+
 
 ## Architecture Diagram
 
@@ -30,6 +30,7 @@ git clone git@github.com:aduku-adp/scope-qam.git
 
 - Create an .env file from provided template
 ```bash
+cd scope-qam
 cp .env-template .env
 ```
 
@@ -37,7 +38,8 @@ cp .env-template .env
 ### 1. One-command stack startup
 
 ```bash
-./tools/clean_deploy_stack.sh
+cd tools/
+./clean_deploy_stack.sh
 ```
 
 ## Key URLs
@@ -57,10 +59,11 @@ cp .env-template .env
 - Run the dag: `company_etl_pipeline`
 
 
-### 3. Apply partition scripts
+### 3. Apply partition and index scripts
 
 ```bash
 ./tools/create_partitions.sh
+./tools/create_indexes.sh
 ```
 
 

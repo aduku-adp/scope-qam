@@ -1,0 +1,10 @@
+# Partition Scripts
+
+This directory contains idempotent SQL scripts to create partitions.
+
+Partition migrations are one-time, maintenance-window operations:
+1. `01_partition_raw_rating_assessments_history.sql`
+2. `02_partition_facts_company_timeseries.sql`
+3. `03_partition_snapshots_snap_company.sql`
+
+Validate row counts and API/dbt behavior before dropping `_old` tables.

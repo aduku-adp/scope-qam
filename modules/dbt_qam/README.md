@@ -103,7 +103,13 @@ Macro file:
 
 Additional optional partition scripts:
 
-- [`tools/sql/performance`](/tools/sql/performance)
+- [`tools/sql/partitions`](/tools/sql/partitions)
+- [`tools/create_partitions.sh`](/tools/create_partitions.sh)
+
+Additional optional indexing scripts:
+
+- [`tools/sql/indexes`](/tools/sql/indexes)
+- [`tools/create_indexes.sh`](/tools/create_indexes.sh)
 
 ## Key models
 
@@ -137,4 +143,3 @@ Schema YAML docs and tests:
 - [`models/marts/schema.yml`](/modules/dbt_qam/models/marts/schema.yml)
 - [`models/reports/schema.yml`](/modules/dbt_qam/models/reports/schema.yml)
 - [`snapshots/schema.yml`](/modules/dbt_qam/snapshots/schema.yml)
-

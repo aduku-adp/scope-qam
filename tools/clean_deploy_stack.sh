@@ -8,6 +8,11 @@ AIRFLOW_IMAGE_NAME="${AIRFLOW_IMAGE_NAME:-scope-qam-airflow:local}"
 cd "$ROOT_DIR"
 export AIRFLOW_IMAGE_NAME
 
+# Clean postgres
+echo "Clean the stack"
+rm -rf "$ROOT_DIR/data/pg_data_qam"
+mkdir "$ROOT_DIR/data/pg_data_qam"
+
 # Build airflow image
 echo "Build airflow image"
 "$TOOLS_DIR/build_airflow.sh"
@@ -15,13 +20,6 @@ echo "Build airflow image"
 # Build qam-api image
 echo "Build qam-api image"
 "$TOOLS_DIR/build_qam_api.sh"
-
-# Clean the stack
-echo "Clean the stack"
-docker compose down --volumes --remove-orphans
-rm -rf "$ROOT_DIR/data/pg_data_qam"
-mkdir "$ROOT_DIR/data/pg_data_qam"
-
 
 # Initialize airflow
 echo "Initialize airflow"
