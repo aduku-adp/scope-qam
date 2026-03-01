@@ -62,8 +62,8 @@ cd tools/
 ### 3. Apply partition and index scripts
 
 ```bash
-./tools/create_partitions.sh
-./tools/create_indexes.sh
+./create_partitions.sh
+./create_indexes.sh
 ```
 
 

@@ -2,7 +2,7 @@
 
 ## Tools used
 
-- ChatGPT / Codex-style assistant (this repository work session)
+- ChatGPT GPT-5.3-codex / Codex-style assistant (this repository work session)
 
 ## Components that received AI assistance
 
@@ -27,14 +27,15 @@
 - Suggesting schema/modeling patterns
 - Generating tests and fixing test failures
 - Writing operational scripts and API docs examples
+- Updating deployment/configuration assets and project documentation
 
 ## Human review and validation
 
 - All generated code was manually reviewed and edited in-repo.
 - Final behavior was validated with local test runs, dbt runs, and endpoint checks.
 
-## Chat logs / screenshots
+## Chat logs / screenshots reference
 
-- AI interaction logs are available in the coding assistant conversation history for this assignment session.
-- Sensitive values were not intentionally included in prompts.
-
+- Exported assistant-side chat history for this assignment:
+  - [/docs/chat_history_export.md](/docs/chat_history_export.md)
+- Sensitive values were not intentionally included in prompts/screenshots.
