@@ -7,6 +7,7 @@
   )
 }}
 
+-- Dictionary dimension for normalized industry-risk combinations.
 with base as (
     select distinct
         industry_classification,

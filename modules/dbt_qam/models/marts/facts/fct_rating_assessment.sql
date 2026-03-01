@@ -7,6 +7,7 @@
   )
 }}
 
+-- Core assessment fact table at one row per raw assessment record hash.
 with base as (
     select *
     from {{ ref('stg_rating_assessments_history') }}

@@ -15,7 +15,7 @@ SNAPSHOT_TAG = "Snapshot Endpoints"
 
 
 def build(router: APIRouter, service: SnapshotService) -> None:
-    """Build snapshot routes."""
+    """Register snapshot endpoints on the shared API router."""
 
     @router.get(
         "/snapshots",
@@ -33,7 +33,7 @@ def build(router: APIRouter, service: SnapshotService) -> None:
         country: Annotated[str | None, Query(description="Filter by country")] = None,
         currency: Annotated[str | None, Query(description="Filter by reporting currency")] = None,
     ) -> OutputModel[list[SnapshotModel]]:
-        """List all snapshots with filters."""
+        """List snapshots with optional company and date-dimension filters."""
         snapshots = service.list_snapshots(
             company_id=company_id,
             from_date=from_date,
@@ -53,7 +53,7 @@ def build(router: APIRouter, service: SnapshotService) -> None:
         response_model_exclude_none=True,
     )
     async def latest_snapshots() -> OutputModel[list[SnapshotModel]]:
-        """Get latest snapshot for each company."""
+        """Get latest active snapshot row for each company."""
         snapshots = service.get_latest_snapshots()
         return format_response(snapshots)
 
@@ -69,10 +69,9 @@ def build(router: APIRouter, service: SnapshotService) -> None:
     async def get_snapshot(
         snapshot_id: Annotated[str, Path(description="Snapshot id")],
     ) -> OutputModel[SnapshotModel]:
-        """Get one snapshot."""
+        """Get one snapshot by snapshot identifier."""
         try:
             snapshot = service.get_snapshot(snapshot_id)
         except Exception as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         return format_response(snapshot)
-

@@ -1,3 +1,13 @@
+"""Airflow DAG for the daily company ingestion + dbt build workflow.
+
+Pipeline stages:
+1. Extract and load raw company history from Excel files.
+2. Build/refresh dbt models.
+3. Validate transformed models.
+4. Build dbt snapshot state.
+5. Validate snapshot outputs.
+"""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -14,6 +24,7 @@ DB_ENV = {
     "DB_NAME": "qam_db",
 }
 
+# Shared DB connection settings injected into each Bash task.
 
 with DAG(
     dag_id="company_etl_pipeline",
@@ -23,6 +34,7 @@ with DAG(
     catchup=False,
     tags=["ratings", "etl", "dbt"],
 ) as dag:
+    # Orchestration sentinels make the run graph explicit in the UI.
     start = EmptyOperator(task_id="start")
 
     extract_company_data = BashOperator(
@@ -77,6 +89,7 @@ with DAG(
 
     end = EmptyOperator(task_id="end")
 
+    # Linear execution keeps failure boundaries clear for observability.
     (
         start
         >> extract_company_data

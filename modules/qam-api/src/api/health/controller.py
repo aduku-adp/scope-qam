@@ -13,7 +13,7 @@ HEALTH_TAG = "Health Endpoints"
 
 
 def build(router: APIRouter, service: HealthService) -> None:
-    """Build health routes."""
+    """Register health endpoints on the shared API router."""
 
     @router.get(
         "/health",
@@ -25,8 +25,8 @@ def build(router: APIRouter, service: HealthService) -> None:
         response_model_exclude_none=True,
     )
     async def health() -> OutputModel[HealthModel]:
+        """Return service health, using HTTP 503 when unhealthy."""
         payload = format_response(service.get_health())
         if not payload.data or not payload.data.healthy:
             return JSONResponse(status_code=503, content=payload.model_dump(mode="json"))
         return payload
-

@@ -2,53 +2,71 @@ version: 2
 
 models:
   - name: stg_rating_assessments_history
+    description: "Canonical staging model that normalizes raw assessment JSON into typed fields."
     columns:
       - name: record_hash
+        description: "Hash of normalized extracted payload used for idempotency."
         tests:
           - not_null
           - unique
       - name: company_id
+        description: "Business company identifier derived from company name."
         tests:
           - not_null
       - name: document_version
+        description: "Version sequence within a company history."
         tests:
           - not_null
       - name: company_name
+        description: "Company display name extracted from MASTER sheet."
         tests:
           - not_null
   - name: stg_rating_methodologies
+    description: "One methodology row per assessment record/version."
     columns:
       - name: record_hash
+        description: "Assessment payload hash."
         tests:
           - not_null
       - name: document_version
+        description: "Version sequence within a company history."
         tests:
           - not_null
       - name: methodology_name
+        description: "Methodology label applied to the assessment."
         tests:
           - not_null
   - name: stg_credit_metrics
+    description: "Exploded credit metrics from nested JSON arrays."
     columns:
       - name: record_hash
+        description: "Assessment payload hash."
         tests:
           - not_null
       - name: document_version
+        description: "Version sequence within a company history."
         tests:
           - not_null
       - name: metric_name
+        description: "Credit metric identifier."
         tests:
           - not_null
       - name: year_label
+        description: "Fiscal year/estimate label associated with the metric value."
         tests:
           - not_null
   - name: stg_industry_risks
+    description: "Exploded industry-risk components for multi-row industry structures."
     columns:
       - name: record_hash
+        description: "Assessment payload hash."
         tests:
           - not_null
       - name: document_version
+        description: "Version sequence within a company history."
         tests:
           - not_null
       - name: industry_risk_index
+        description: "Ordinal position of industry-risk component inside source list."
         tests:
           - not_null

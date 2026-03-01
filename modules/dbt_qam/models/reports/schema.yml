@@ -2,17 +2,22 @@ version: 2
 
 models:
   - name: rep_company
+    description: "Denormalized reporting table joining company dims/facts for API consumption."
     columns:
       - name: rep_company_key
+        description: "Primary key for one company assessment/version row."
         tests:
           - not_null
           - unique
       - name: company_id
+        description: "Business company identifier."
         tests:
           - not_null
       - name: document_version
+        description: "Version sequence within a company history."
         tests:
           - not_null
       - name: source_modified_at_utc
+        description: "Source file modified timestamp used for temporal ordering."
         tests:
           - not_null

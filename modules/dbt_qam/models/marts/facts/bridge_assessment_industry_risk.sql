@@ -7,6 +7,7 @@
   )
 }}
 
+-- Bridge table between assessment facts and normalized industry-risk members.
 with base as (
     select *
     from {{ ref('stg_industry_risks') }}

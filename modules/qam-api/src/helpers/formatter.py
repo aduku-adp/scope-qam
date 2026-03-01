@@ -39,11 +39,12 @@ class ErrorModel(BaseModel):
 
 
 def _request_uid() -> str:
+    """Generate a per-response request correlation identifier."""
     return str(uuid4())
 
 
 def format_response(data: T | list[T] | None = None) -> OutputModel[T]:
-    """Format response for the API."""
+    """Wrap a payload in the standard API response envelope."""
     return OutputModel(
         data=data,
         request_uid=_request_uid(),
@@ -52,7 +53,7 @@ def format_response(data: T | list[T] | None = None) -> OutputModel[T]:
 
 
 def empty_response() -> EmptyOutputModel:
-    """Empty response for the API."""
+    """Build a standard empty response envelope."""
     return EmptyOutputModel(
         status=Status.OK,
         request_uid=_request_uid(),

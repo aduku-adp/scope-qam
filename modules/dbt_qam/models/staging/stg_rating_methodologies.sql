@@ -1,3 +1,4 @@
+-- Flatten methodology list into one row per methodology per assessment version.
 with base as (
     select
         record_hash,

@@ -1,4 +1,5 @@
 {% macro _create_index_if_table_exists(schema_name, table_name, index_name, columns_sql, where_sql=None) %}
+  {# Create an index only when the relation exists in the current target. #}
   {%- set relation = adapter.get_relation(
       database=target.database,
       schema=schema_name,
@@ -16,6 +17,7 @@
 {% endmacro %}
 
 {% macro ensure_performance_indexes() %}
+  {# Apply join/filter indexes for API access patterns and dbt model joins. #}
   {# dims #}
   {% do _create_index_if_table_exists('dims', 'dim_company', 'idx_dim_company_company_doc', 'company_id, document_version') %}
   {% do _create_index_if_table_exists('dims', 'dim_company', 'idx_dim_company_active_start_doc', 'company_id, is_active, start_at desc, document_version desc') %}

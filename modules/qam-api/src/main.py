@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-"""Main to define a FastAPI application for GKE, GCR, or GCF.
+"""FastAPI entrypoint for local execution and WSGI/ASGI import."""
 
-Please do not modify this file, or at your own risk.
-"""
 import os
 
 import uvicorn
@@ -11,7 +9,7 @@ from application import make_app  # application definition
 
 is_local_runtime = bool((__name__ == "__main__") or os.environ.get("LOCAL_TEST"))
 
-# In pytest, we use a test app instead
+# In pytest, tests patch and build dedicated app instances.
 if os.environ.get("TEST_ENV", "0") != "1":  # pragma: no cover
     app = make_app(is_local_runtime=is_local_runtime)
 

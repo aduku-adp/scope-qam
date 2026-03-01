@@ -11,6 +11,8 @@ from api.snapshot.models import SnapshotModel
 
 
 class NotFound(Exception):
+    """Raised when a requested snapshot cannot be found."""
+
     pass
 
 
@@ -18,6 +20,7 @@ class SnapshotProvider:
     """Snapshot provider for snapshots.snap_company table."""
 
     def __init__(self, connection: PgConnection):
+        """Instantiate provider with an open PostgreSQL connection."""
         self.conn = connection
 
     def list(
@@ -30,7 +33,7 @@ class SnapshotProvider:
         country: str | None = None,
         currency: str | None = None,
     ) -> list[SnapshotModel]:
-        """List snapshots with optional filters."""
+        """List snapshot rows with optional business/date filters."""
         query = """
             SELECT
                 sc.*,
@@ -74,7 +77,7 @@ class SnapshotProvider:
         return [SnapshotModel(**row) for row in rows]
 
     def get(self, snapshot_id: str) -> SnapshotModel:
-        """Get one snapshot by snapshot_id."""
+        """Get one snapshot by dbt-generated snapshot identifier."""
         query = """
             SELECT
                 sc.*,
@@ -95,7 +98,7 @@ class SnapshotProvider:
         return SnapshotModel(**row)
 
     def latest(self) -> list[SnapshotModel]:
-        """Get latest snapshot for each company."""
+        """Get current active snapshot row for each company (`dbt_valid_to IS NULL`)."""
         query = """
             SELECT DISTINCT ON (company_id)
                 sc.*,

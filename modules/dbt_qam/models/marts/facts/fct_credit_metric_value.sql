@@ -7,6 +7,7 @@
   )
 }}
 
+-- Fact table for numeric/text credit metric values by year and version.
 with base as (
     select *
     from {{ ref('stg_credit_metrics') }}

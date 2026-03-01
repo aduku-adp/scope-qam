@@ -2,6 +2,8 @@ version: 2
 
 sources:
   - name: raw
+    description: "Raw ingestion schema populated by the Python extraction pipeline."
     schema: raw
     tables:
       - name: rating_assessments_history
+        description: "Immutable ingestion history of parsed MASTER-sheet company assessments."

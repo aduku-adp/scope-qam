@@ -1,3 +1,4 @@
+-- Explode nested credit_metrics JSON array into one row per metric point.
 with base as (
     select
         record_hash,

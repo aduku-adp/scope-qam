@@ -15,9 +15,11 @@ class HealthService:
     """Checks DB connectivity and corporate data directory readability."""
 
     def __init__(self, corporates_dir: str | None = None):
+        """Instantiate health service with optional corporates directory override."""
         self.corporates_dir = corporates_dir or os.environ.get("CORPORATES_DATA_DIR", "/data/corporates")
 
     def _check_database(self) -> tuple[bool, str]:
+        """Run a lightweight database connectivity probe (`SELECT 1`)."""
         try:
             with psycopg2.connect(
                 host=PG_HOST,
@@ -35,6 +37,7 @@ class HealthService:
             return False, str(exc)
 
     def _check_corporates_dir(self) -> tuple[bool, str, int]:
+        """Validate directory accessibility and count supported corporate files."""
         path = Path(self.corporates_dir)
         if not path.exists():
             return False, f"directory not found: {path}", 0
@@ -47,6 +50,7 @@ class HealthService:
         return True, "ok", count
 
     def get_health(self) -> HealthModel:
+        """Aggregate connectivity and file-access checks into one payload."""
         database_ok, database_message = self._check_database()
         corporates_dir_ok, corporates_dir_message, files_count = self._check_corporates_dir()
         return HealthModel(
@@ -58,4 +62,3 @@ class HealthService:
             database_message=database_message,
             corporates_dir_message=corporates_dir_message,
         )
-

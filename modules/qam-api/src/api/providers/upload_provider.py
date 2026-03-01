@@ -9,6 +9,8 @@ from api.upload.models import UploadDetailsModel, UploadModel, UploadStatsModel
 
 
 class NotFound(Exception):
+    """Raised when an upload event or linked upload asset does not exist."""
+
     pass
 
 
@@ -16,9 +18,11 @@ class UploadProvider:
     """Upload provider for observability audit tables."""
 
     def __init__(self, connection: PgConnection):
+        """Instantiate provider with an open PostgreSQL connection."""
         self.conn = connection
 
     def list(self) -> list[UploadModel]:
+        """List upload events ordered by ingestion recency."""
         query = """
             SELECT
                 fie.event_id::text AS upload_id,
@@ -48,6 +52,7 @@ class UploadProvider:
         return [UploadModel(**row) for row in rows]
 
     def get(self, upload_id: str) -> UploadModel:
+        """Get one upload event by UUID identifier."""
         query = """
             SELECT
                 fie.event_id::text AS upload_id,
@@ -79,6 +84,7 @@ class UploadProvider:
         return UploadModel(**row)
 
     def get_details(self, upload_id: str) -> UploadDetailsModel:
+        """Get one upload with data quality and lineage traces."""
         upload = self.get(upload_id)
         with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(
@@ -122,12 +128,14 @@ class UploadProvider:
         )
 
     def get_file_info(self, upload_id: str) -> tuple[str, str]:
+        """Return source file path and name for download endpoint resolution."""
         upload = self.get(upload_id)
         if not upload.source_file_path or not upload.source_filename:
             raise NotFound(f"No source file found for upload {upload_id}")
         return upload.source_file_path, upload.source_filename
 
     def stats(self) -> UploadStatsModel:
+        """Return aggregate upload metrics and status distribution."""
         query_totals = """
             SELECT
                 COUNT(*)::int AS total_uploads,
@@ -161,4 +169,3 @@ class UploadProvider:
             latest_upload_at=totals_row.get("latest_upload_at"),
             uploads_by_status=uploads_by_status,
         )
-

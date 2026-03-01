@@ -7,6 +7,7 @@
   )
 }}
 
+-- Calendar dimension derived from source file modification dates.
 with dates as (
     select distinct source_modified_date as full_date
     from {{ ref('stg_rating_assessments_history') }}

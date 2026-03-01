@@ -1,16 +1,14 @@
-"""Common models for payload and response."""
+"""Pydantic models for company endpoints."""
 
+from datetime import date, datetime
 from typing import Any, Optional
 
 # pylint: disable=invalid-name, no-self-argument
 from pydantic import BaseModel, Field, model_validator
 
 
-from datetime import date, datetime
-
-
 class CompanyModel(BaseModel):
-    """Company model."""
+    """Company payload model backed by `reports.rep_company`."""
 
     rep_company_key: Optional[str] = Field(
         description="Primary key of reports.rep_company row.",
@@ -160,7 +158,7 @@ class CompanyModel(BaseModel):
 
 
 class CompanyHistoryPointModel(BaseModel):
-    """Time-series point for company analysis."""
+    """Normalized time-series point used by `/companies/{company_id}/history`."""
 
     timeseries_key: str = Field(
         description="Unique key for the normalized time-series point.",
@@ -183,11 +181,11 @@ class CompanyHistoryPointModel(BaseModel):
         examples=["2026-02-25T22:37:26.360512Z"],
     )
     column_name: str = Field(
-        description="Series domain, e.g. rating or credit_metric.",
-        examples=["credit_metric"],
+        description="Requested column/block name used as level-1 selector.",
+        examples=["industry_risk_score"],
     )
     metric_name: str = Field(
-        description="Series identifier/name.",
+        description="Optional level-2 metric identifier.",
         examples=["scope_adjusted_debt_ebitda"],
     )
     series_value: str = Field(
@@ -212,7 +210,7 @@ class CompanyComparisonDiffModel(BaseModel):
 
 
 class CompanyCompareResultModel(BaseModel):
-    """Comparison output containing selected companies and detected diffs."""
+    """Legacy comparison payload shape kept for backward compatibility."""
 
     companies: list[CompanyModel]
     diffs: list[CompanyComparisonDiffModel]

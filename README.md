@@ -1,10 +1,17 @@
 # scope-qam
 
-Corporate credit rating data pipeline:
-- extraction + validation: `modules/data-extraction`
-- warehouse modeling: `modules/dbt_qam`
-- orchestration: `modules/airflow`
-- API: `modules/qam-api`
+Corporate credit rating data platform with:
+- Python extraction + validation pipeline
+- dbt warehouse transformations + snapshots
+- Airflow orchestration
+- FastAPI analytics and audit endpoints
+
+## Module documentation
+
+- Data extraction: [modules/data-extraction/README.md](/modules/data-extraction/README.md)
+- dbt transformations: [modules/dbt_qam/README.md](/modules/dbt_qam/README.md)
+- Airflow orchestration: [modules/airflow/README.md](/modules/airflow/README.md)
+- API service: [modules/qam-api/README.md](/modules/qam-api/README.md)
 
 ## One-command startup
 
@@ -17,6 +24,13 @@ docker compose up -d
 - FastAPI Swagger: `http://localhost:8000/docs`
 - FastAPI Health: `http://localhost:8000/v1/health`
 - Airflow UI: `http://localhost:8080`
+- dbt docs (if served): `http://localhost:8001`
+
+## Data location
+
+Corporate input files are expected in:
+
+- `data/corporates/*.xlsm|*.xlsx`
 
 ## Sample API calls (10+)
 
@@ -33,11 +47,11 @@ curl -s http://localhost:8000/v1/companies/company_a
 # 4) company versions
 curl -s http://localhost:8000/v1/companies/company_a/versions
 
-# 5) company history
-curl -s "http://localhost:8000/v1/companies/company_a/history"
+# 5) company history (column_name is required)
+curl -s "http://localhost:8000/v1/companies/company_a/history?column_name=industry_risk_score"
 
-# 6) company history filtered
-curl -s "http://localhost:8000/v1/companies/company_a/history?series_type=credit_metric&series_name=scope_adjusted_debt_ebitda&year_label=2025E"
+# 6) company history filtered (3 levels)
+curl -s "http://localhost:8000/v1/companies/company_a/history?column_name=credit_metrics&metric_name=scope_adjusted_debt_ebitda&year_label=2025E"
 
 # 7) compare companies (latest)
 curl -s "http://localhost:8000/v1/companies/compare?company_ids=company_a,company_b"
@@ -56,6 +70,15 @@ curl -s http://localhost:8000/v1/uploads
 
 # 12) uploads stats
 curl -s http://localhost:8000/v1/uploads/stats
+```
+
+## dbt docs
+
+From `scope-qam/modules/dbt_qam`:
+
+```bash
+dbt docs generate --profiles-dir . --target dev
+dbt docs serve --profiles-dir . --target dev --port 8001
 ```
 
 ## Example response snippets
@@ -107,7 +130,7 @@ Example row:
 }
 ```
 
-## Pipeline run log example
+## Pipeline run event example
 
 Printed by extraction pipeline and stored in `obs.pipeline_runs`:
 

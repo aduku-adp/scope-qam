@@ -17,7 +17,7 @@ UPLOAD_TAG = "Upload Audit Endpoints"
 
 
 def _resolve_upload_file_path(source_file_path: str, source_filename: str) -> Path | None:
-    """Resolve a readable upload file path across container path layouts."""
+    """Resolve a readable upload file path across local/container layouts."""
     direct = Path(source_file_path)
     if direct.exists() and direct.is_file():
         return direct
@@ -42,7 +42,7 @@ def _resolve_upload_file_path(source_file_path: str, source_filename: str) -> Pa
 
 
 def build(router: APIRouter, service: UploadService) -> None:
-    """Build upload audit routes."""
+    """Register upload-audit endpoints on the shared API router."""
 
     @router.get(
         "/uploads",
@@ -51,6 +51,7 @@ def build(router: APIRouter, service: UploadService) -> None:
         response_model_exclude_none=True,
     )
     async def list_uploads() -> OutputModel[list[UploadModel]]:
+        """List all upload audit events."""
         uploads = service.list_uploads()
         return format_response(uploads)
 
@@ -61,6 +62,7 @@ def build(router: APIRouter, service: UploadService) -> None:
         response_model_exclude_none=True,
     )
     async def get_upload_stats() -> OutputModel[UploadStatsModel]:
+        """Return aggregate upload counts and quality metrics."""
         stats = service.get_upload_stats()
         return format_response(stats)
 
@@ -76,6 +78,7 @@ def build(router: APIRouter, service: UploadService) -> None:
     async def get_upload_details(
         upload_id: Annotated[str, ApiPath(description="Upload id")],
     ) -> OutputModel[UploadDetailsModel]:
+        """Return detailed upload event, quality results, and lineage traces."""
         try:
             details = service.get_upload_details(upload_id)
         except Exception as exc:
@@ -93,6 +96,7 @@ def build(router: APIRouter, service: UploadService) -> None:
     async def download_upload_file(
         upload_id: Annotated[str, ApiPath(description="Upload id")],
     ) -> FileResponse:
+        """Download the original source file associated with an upload event."""
         try:
             source_file_path, source_filename = service.get_upload_file_info(upload_id)
         except Exception as exc:

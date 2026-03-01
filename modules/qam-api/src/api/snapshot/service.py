@@ -7,9 +7,10 @@ from api.snapshot.models import SnapshotModel
 
 
 class SnapshotService:
-    """Snapshot service."""
+    """Application service for snapshot read/query operations."""
 
     def __init__(self, snapshot_provider: SnapshotProvider):
+        """Instantiate snapshot service with its persistence provider."""
         self.snapshot_provider = snapshot_provider
 
     def list_snapshots(
@@ -22,7 +23,7 @@ class SnapshotService:
         country: str | None = None,
         currency: str | None = None,
     ) -> list[SnapshotModel]:
-        """List snapshots with optional filters."""
+        """List snapshots with optional API filters."""
         return self.snapshot_provider.list(
             company_id=company_id,
             from_date=from_date,
@@ -33,10 +34,9 @@ class SnapshotService:
         )
 
     def get_snapshot(self, snapshot_id: str) -> SnapshotModel:
-        """Get a specific snapshot."""
+        """Get one snapshot row by identifier."""
         return self.snapshot_provider.get(snapshot_id)
 
     def get_latest_snapshots(self) -> list[SnapshotModel]:
-        """Get latest snapshot for each company."""
+        """Get latest active snapshot row for each company."""
         return self.snapshot_provider.latest()
-

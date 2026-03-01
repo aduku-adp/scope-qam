@@ -7,6 +7,7 @@
   )
 }}
 
+-- Bridge table between assessment facts and methodology dimension.
 with base as (
     select *
     from {{ ref('stg_rating_methodologies') }}

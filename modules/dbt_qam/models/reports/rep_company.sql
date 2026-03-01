@@ -7,6 +7,8 @@
   )
 }}
 
+-- Reporting-wide denormalized company table that joins dims/facts at version grain.
+-- This is the primary source for company API endpoints.
 with assessment as (
     select
         fa.assessment_key,

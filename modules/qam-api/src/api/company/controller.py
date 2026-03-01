@@ -1,4 +1,4 @@
-"""Qam API."""
+"""Company API controller."""
 
 import logging
 from datetime import datetime
@@ -22,7 +22,7 @@ def build(
     router: APIRouter,
     service: CompanyService,
 ) -> None:
-    """Handle requests."""
+    """Register company endpoints on the shared API router."""
     LOGGER.debug("Create %s controller", __name__)
 
     @router.get(
@@ -71,7 +71,7 @@ def build(
             ),
         ] = None,
     ) -> OutputModel[list[CompanyComparisonDiffModel]]:
-        """Compare multiple companies at latest or at a specific point in time."""
+        """Compare companies and return only column-level differences."""
         LOGGER.debug("controller.get: Compare companies")
 
         parsed_ids = [item.strip() for item in company_ids.split(",") if item.strip()]
@@ -175,7 +175,7 @@ def build(
             ),
         ] = None,
     ) -> OutputModel[list[CompanyHistoryPointModel]]:
-        """Get time-series data for analysis."""
+        """Get filtered time-series points for one company."""
         LOGGER.debug("controller.get: Get time-series history for a company")
 
         try:

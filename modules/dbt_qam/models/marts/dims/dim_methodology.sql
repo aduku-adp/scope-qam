@@ -7,6 +7,7 @@
   )
 }}
 
+-- Dictionary dimension for rating methodology names.
 with base as (
     select distinct methodology_name
     from {{ ref('stg_rating_methodologies') }}

@@ -1,3 +1,5 @@
+"""Airflow DAG for running only snapshot refresh + snapshot tests."""
+
 from __future__ import annotations
 
 from datetime import datetime
@@ -14,6 +16,7 @@ DB_ENV = {
     "DB_NAME": "qam_db",
 }
 
+# Shared DB connection settings injected into each Bash task.
 
 with DAG(
     dag_id="snapshot_etl_pipeline",
@@ -23,6 +26,7 @@ with DAG(
     catchup=False,
     tags=["ratings", "etl", "dbt", "snapshot"],
 ) as dag:
+    # Explicit boundaries for easier run-state inspection in Airflow UI.
     start = EmptyOperator(task_id="start")
 
     run_dbt_models = BashOperator(
@@ -47,4 +51,5 @@ with DAG(
 
     end = EmptyOperator(task_id="end")
 
+    # Snapshot-only flow.
     start >> run_dbt_models >> run_dbt_tests >> end

@@ -2,17 +2,22 @@ version: 2
 
 snapshots:
   - name: snap_company
+    description: "dbt snapshot history of active rep_company rows."
     columns:
       - name: dbt_scd_id
+        description: "dbt-generated snapshot row identifier."
         tests:
           - not_null
           - unique
       - name: company_id
+        description: "Business company identifier."
         tests:
           - not_null
       - name: document_version
+        description: "Version sequence captured by snapshot row."
         tests:
           - not_null
       - name: source_modified_at_utc
+        description: "Timestamp tracked by snapshot timestamp strategy."
         tests:
           - not_null

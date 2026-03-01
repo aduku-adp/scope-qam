@@ -7,6 +7,7 @@
   )
 }}
 
+-- Slowly changing dimension for company metadata at document-version grain.
 with base as (
     select
         company_id,

@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 
 
 class SnapshotModel(BaseModel):
-    """Company snapshot model."""
+    """Snapshot payload model backed by `snapshots.snap_company`."""
 
     snapshot_id: str = Field(
         description="Snapshot identifier.",

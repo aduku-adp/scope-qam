@@ -10,6 +10,7 @@
     )
 }}
 
+-- Track active rep_company rows over time using dbt snapshot metadata columns.
 select
     current_timestamp as snapshot_created_at,
     rep_company_key,

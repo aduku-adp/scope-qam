@@ -2,116 +2,153 @@ version: 2
 
 models:
   - name: dim_company
+    description: "SCD-style company dimension at company_id + document_version grain."
     columns:
       - name: company_scd_key
+        description: "Surrogate key for the versioned company dimension row."
         tests:
           - not_null
           - unique
       - name: company_id
+        description: "Business company identifier."
         tests:
           - not_null
       - name: company_name
+        description: "Company display name."
         tests:
           - not_null
       - name: industry_risk_score
+        description: "Aggregated industry risk score(s)."
       - name: rating_methodologies_applied
+        description: "Pipe-delimited methodology labels."
       - name: document_version
+        description: "Version sequence within a company history."
         tests:
           - not_null
       - name: start_at
+        description: "SCD validity start timestamp."
         tests:
           - not_null
 
   - name: dim_date
+    description: "Calendar/date dimension used by fact models."
     columns:
       - name: date_key
+        description: "YYYYMMDD surrogate key."
         tests:
           - not_null
           - unique
 
   - name: dim_methodology
+    description: "Dictionary of distinct rating methodologies."
     columns:
       - name: methodology_key
+        description: "Surrogate key for methodology_name."
         tests:
           - not_null
           - unique
 
   - name: dim_credit_metric
+    description: "Dictionary of distinct credit metric names."
     columns:
       - name: metric_key
+        description: "Surrogate key for metric_name."
         tests:
           - not_null
           - unique
 
   - name: dim_industry_risk
+    description: "Dictionary of normalized industry classification + score combinations."
     columns:
       - name: industry_risk_key
+        description: "Surrogate key for industry classification/risk score pair."
         tests:
           - not_null
           - unique
 
   - name: fct_rating_assessment
+    description: "Core fact table with one row per ingested assessment record."
     columns:
       - name: assessment_key
+        description: "Surrogate key for assessment fact row."
         tests:
           - not_null
           - unique
       - name: record_hash
+        description: "Raw payload hash used for idempotent ingestion."
         tests:
           - not_null
       - name: document_version
+        description: "Version sequence within a company history."
         tests:
           - not_null
 
   - name: fct_credit_metric_value
+    description: "Fact table of credit metric values by year label and document version."
     columns:
       - name: credit_metric_value_key
+        description: "Surrogate key for one metric value point."
         tests:
           - not_null
           - unique
       - name: document_version
+        description: "Version sequence within a company history."
         tests:
           - not_null
       - name: metric_value
+        description: "Parsed metric numeric/text value as stored in source."
 
   - name: fct_company_timeseries
+    description: "Unified time-series fact supporting 3-level API filtering."
     columns:
       - name: timeseries_key
+        description: "Deterministic key for one normalized time-series point."
         tests:
           - not_null
           - unique
       - name: company_id
+        description: "Business company identifier."
         tests:
           - not_null
       - name: document_version
+        description: "Version sequence within a company history."
         tests:
           - not_null
       - name: event_time
+        description: "Timestamp associated with the series point."
         tests:
           - not_null
       - name: column_name
+        description: "Level-1 selector for time-series navigation."
         tests:
           - not_null
       - name: metric_name
+        description: "Level-2 selector for nested structures."
         tests:
           - not_null
 
   - name: bridge_assessment_methodology
+    description: "Bridge between assessments and methodology dimension members."
     columns:
       - name: assessment_methodology_key
+        description: "Surrogate key for one assessment-methodology relationship."
         tests:
           - not_null
           - unique
       - name: document_version
+        description: "Version sequence within a company history."
         tests:
           - not_null
 
   - name: bridge_assessment_industry_risk
+    description: "Bridge between assessments and exploded industry-risk members."
     columns:
       - name: assessment_industry_risk_key
+        description: "Surrogate key for one assessment-industry-risk relationship."
         tests:
           - not_null
           - unique
       - name: document_version
+        description: "Version sequence within a company history."
         tests:
           - not_null

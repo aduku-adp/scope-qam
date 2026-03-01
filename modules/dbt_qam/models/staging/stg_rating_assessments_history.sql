@@ -1,3 +1,5 @@
+-- Standardize the raw JSON assessment payload into typed staging columns.
+-- This model is the canonical staging entrypoint for downstream marts models.
 with src as (
     select *
     from {{ source('raw', 'rating_assessments_history') }}

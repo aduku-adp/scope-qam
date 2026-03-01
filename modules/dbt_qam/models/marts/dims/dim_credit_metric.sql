@@ -7,6 +7,7 @@
   )
 }}
 
+-- Dictionary dimension for credit metric names.
 with base as (
     select distinct metric_name
     from {{ ref('stg_credit_metrics') }}

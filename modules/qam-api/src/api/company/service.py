@@ -8,21 +8,21 @@ from api.providers.company_provider import CompanyProvider
 
 
 class CompanyService:
-    """Company service."""
+    """Application service for company read/query operations."""
 
     def __init__(
         self,
         company_provider: CompanyProvider,
     ):
-        """Initialize the instance."""
+        """Instantiate the service with its persistence provider."""
         self.company_provider = company_provider
 
-    def list_all(self, active_only=True) -> list[CompanyModel]:
-        """List all the latest companies."""
+    def list_all(self, active_only: bool = True) -> list[CompanyModel]:
+        """List companies, optionally restricted to active rows."""
         return self.company_provider.list(active_only=active_only)
 
     def get_company(self, company_id: str) -> CompanyModel:
-        """Get a latest company details"""
+        """Get one company record (latest active by default in provider)."""
         company = self.company_provider.get(company_id)
 
         return company
@@ -34,13 +34,13 @@ class CompanyService:
     def compare_companies(
         self, company_ids: list[str], as_of_date: datetime | None = None
     ) -> list[CompanyModel]:
-        """Compare multiple companies at latest or at a specific point in time."""
+        """Return comparable company rows at latest or point-in-time cutoff."""
         return self.company_provider.compare(company_ids, as_of_date=as_of_date)
 
     def compare_companies_with_diffs(
         self, company_ids: list[str], as_of_date: datetime | None = None
     ) -> list[CompanyComparisonDiffModel]:
-        """Compare companies and return differing columns across returned rows."""
+        """Return only column-level differences across compared company rows."""
         companies = self.compare_companies(company_ids, as_of_date=as_of_date)
 
         excluded_columns = {
@@ -57,6 +57,7 @@ class CompanyService:
 
         diffs: list[CompanyComparisonDiffModel] = []
         for column in comparable_columns:
+            # Normalize complex values (e.g. datetimes/lists) for stable equality checks.
             values = {c.company_id: getattr(c, column) for c in companies}
             normalized = {
                 json.dumps(value, default=str, sort_keys=True) for value in values.values()
@@ -78,7 +79,7 @@ class CompanyService:
         metric_name: str | None = None,
         year_label: str | None = None,
     ) -> list[CompanyHistoryPointModel]:
-        """Get time-series data for company analysis."""
+        """Return normalized company history points using 3-level filters."""
         return self.company_provider.get_history(
             company_id,
             column_name=column_name,

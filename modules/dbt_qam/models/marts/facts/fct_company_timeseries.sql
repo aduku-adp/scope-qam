@@ -7,6 +7,8 @@
   )
 }}
 
+-- Unified time-series fact built from rep_company:
+-- level 1 = scalar company columns, level 2/3 = exploded credit metric attributes.
 with base as (
     select
         company_id,

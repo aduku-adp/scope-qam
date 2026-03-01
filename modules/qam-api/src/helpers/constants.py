@@ -1,9 +1,9 @@
-"""Generic constants."""
+"""Application constants and environment-backed settings."""
 
 import os
 import textwrap
 
-# API designation
+# API metadata
 API_VERSION = "0.1"
 API_VERSION_PATH = "v1"
 API_TITLE = "QAM API Service"
@@ -13,7 +13,7 @@ API_DESCRIPTION = textwrap.dedent(
     """
 )
 
-# Database configuration
+# PostgreSQL configuration
 PG_HOST = os.environ.get("PG_HOST", "localhost")
 PG_PORT = int(os.environ.get("PG_PORT", "5432"))
 PG_USER = os.environ.get("PG_USER", "postgres")

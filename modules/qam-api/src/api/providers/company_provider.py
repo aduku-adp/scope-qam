@@ -11,12 +11,15 @@ from psycopg2.extras import RealDictCursor
 from api.company.models import CompanyHistoryPointModel, CompanyModel
 
 
-# Replace with your real API exceptions
 class NotFound(Exception):
+    """Raised when a requested company resource does not exist."""
+
     pass
 
 
 class Conflict(Exception):
+    """Raised when a write operation would violate data consistency rules."""
+
     pass
 
 
@@ -69,20 +72,17 @@ class CompanyProvider:
     """Company provider for reports.rep_company table."""
 
     def __init__(self, connection: PgConnection):
+        """Instantiate provider with an open PostgreSQL connection."""
         self.conn = connection
 
     def list(self, active_only: bool = False) -> list[CompanyModel]:
-        """List companies.
-
-        Returns:
-            A list of company model.
-        """
+        """List companies from `reports.rep_company`."""
         return [
             self._to_model(db_company) for db_company in self._list_all(active_only)
         ]
 
     def _to_model(self, db_company: CompanyDB) -> CompanyModel:
-        """Return the company model."""
+        """Map one DB row object to the API company model."""
         return CompanyModel(
             rep_company_key=db_company.rep_company_key,
             company_id=db_company.company_id,
@@ -123,7 +123,7 @@ class CompanyProvider:
         )
 
     def _list_all(self, active_only: bool = True) -> list[CompanyDB]:
-        """List companies."""
+        """Query all companies from reports table with optional active filter."""
         query = """
             SELECT *
             FROM reports.rep_company
@@ -139,11 +139,7 @@ class CompanyProvider:
         return [CompanyDB(**row) for row in rows]
 
     def get(self, company_id: str, active_only: bool = True) -> CompanyModel:
-        """Get a company by company_id.
-
-        Returns:
-            A company model.
-        """
+        """Get one company by id, optionally restricted to active version."""
         query = """
             SELECT *
             FROM reports.rep_company
@@ -165,7 +161,7 @@ class CompanyProvider:
         return self._to_model(db_company)
 
     def get_versions(self, company_id: str) -> list[CompanyModel]:
-        """Get all versions for a company by company_id."""
+        """Get all company versions ordered from latest to oldest."""
         query = """
             SELECT *
             FROM reports.rep_company
@@ -183,7 +179,7 @@ class CompanyProvider:
         return [self._to_model(CompanyDB(**row)) for row in rows]
 
     def compare(self, company_ids: list[str], as_of_date: datetime | None = None) -> list[CompanyModel]:
-        """Compare companies at latest or at a specific point in time."""
+        """Fetch one row per company for comparison at latest or as-of timestamp."""
         select_cols = """
             rep_company_key,
             assessment_key,
@@ -283,7 +279,7 @@ class CompanyProvider:
         metric_name: str | None = None,
         year_label: str | None = None,
     ) -> list[CompanyHistoryPointModel]:
-        """Get company assessment history as time-series points."""
+        """Fetch normalized company time-series points with 3-level filters."""
         query = """
             SELECT
                 timeseries_key,

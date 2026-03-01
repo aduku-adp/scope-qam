@@ -34,6 +34,7 @@ LOGGER = logging.getLogger(__name__)
 
 
 def _build_company_service() -> CompanyService:
+    """Create company service with a readonly PostgreSQL connection."""
     conn = psycopg2.connect(
         host=PG_HOST,
         port=PG_PORT,
@@ -47,6 +48,7 @@ def _build_company_service() -> CompanyService:
 
 
 def _build_snapshot_service() -> SnapshotService:
+    """Create snapshot service with a readonly PostgreSQL connection."""
     conn = psycopg2.connect(
         host=PG_HOST,
         port=PG_PORT,
@@ -59,6 +61,7 @@ def _build_snapshot_service() -> SnapshotService:
 
 
 def _build_upload_service() -> UploadService:
+    """Create upload-audit service with a readonly PostgreSQL connection."""
     conn = psycopg2.connect(
         host=PG_HOST,
         port=PG_PORT,
@@ -71,6 +74,7 @@ def _build_upload_service() -> UploadService:
 
 
 def _build_health_service() -> HealthService:
+    """Create health service for liveness/readiness checks."""
     return HealthService()
 
 

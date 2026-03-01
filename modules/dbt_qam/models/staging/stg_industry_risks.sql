@@ -1,3 +1,4 @@
+-- Explode industry-risk JSON array so each industry component is queryable.
 with base as (
     select
         record_hash,
