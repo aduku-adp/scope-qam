@@ -3,12 +3,7 @@
 from datetime import datetime
 import json
 
-from api.company.models import (
-    CompanyCompareResultModel,
-    CompanyComparisonDiffModel,
-    CompanyHistoryPointModel,
-    CompanyModel,
-)
+from api.company.models import CompanyComparisonDiffModel, CompanyHistoryPointModel, CompanyModel
 from api.providers.company_provider import CompanyProvider
 
 
@@ -44,25 +39,20 @@ class CompanyService:
 
     def compare_companies_with_diffs(
         self, company_ids: list[str], as_of_date: datetime | None = None
-    ) -> CompanyCompareResultModel:
+    ) -> list[CompanyComparisonDiffModel]:
         """Compare companies and return differing columns across returned rows."""
         companies = self.compare_companies(company_ids, as_of_date=as_of_date)
 
+        excluded_columns = {
+            "rep_company_key",
+            "assessment_key",
+            "record_hash",
+            "company_scd_key",
+        }
         comparable_columns = [
-            "company_name",
-            "country",
-            "corporate_sector",
-            "reporting_currency",
-            "accounting_principles",
-            "fiscal_year_end",
-            "industry_classification",
-            "industry_risk_score",
-            "industry_weight",
-            "segmentation_criteria",
-            "rating_methodologies_applied",
-            "document_version",
-            "end_at",
-            "is_active",
+            field_name
+            for field_name in CompanyModel.model_fields
+            if field_name not in excluded_columns
         ]
 
         diffs: list[CompanyComparisonDiffModel] = []
@@ -79,19 +69,19 @@ class CompanyService:
                     )
                 )
 
-        return CompanyCompareResultModel(companies=companies, diffs=diffs)
+        return diffs
 
     def get_company_history(
         self,
         company_id: str,
-        series_type: str | None = None,
-        series_name: str | None = None,
+        column_name: str,
+        metric_name: str | None = None,
         year_label: str | None = None,
     ) -> list[CompanyHistoryPointModel]:
         """Get time-series data for company analysis."""
         return self.company_provider.get_history(
             company_id,
-            series_type=series_type,
-            series_name=series_name,
+            column_name=column_name,
+            metric_name=metric_name,
             year_label=year_label,
         )

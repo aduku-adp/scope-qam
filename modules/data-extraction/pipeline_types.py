@@ -8,6 +8,8 @@ from datetime import datetime
 
 @dataclass
 class FileProcessLog:
+    """Per-file execution status used for observability persistence."""
+
     source_file_path: str
     source_filename: str
     status: str
@@ -17,6 +19,8 @@ class FileProcessLog:
 
 @dataclass
 class PipelineRunMetrics:
+    """Aggregate counters and quality metrics for one pipeline run."""
+
     run_id: str
     started_at: datetime
     files_processed: int = 0
@@ -29,6 +33,7 @@ class PipelineRunMetrics:
     load_failures: int = 0
 
     def completeness_rate(self) -> float:
+        """Compute completeness as processed files minus validation failures."""
         if self.files_processed <= 0:
             return 0.0
         return round(
@@ -37,6 +42,7 @@ class PipelineRunMetrics:
         )
 
     def validity_rate(self) -> float:
+        """Compute validity as processed files minus all pipeline failures."""
         if self.files_processed <= 0:
             return 0.0
         failed = self.extraction_failures + self.validation_failures + self.load_failures

@@ -180,7 +180,7 @@ def test_compare_companies_notfound(service):
 
 
 def test_compare_companies_with_diffs(service):
-    """Test compare_companies_with_diffs returns compared companies and changed columns."""
+    """Test compare_companies_with_diffs returns changed columns only."""
     companies = [
         CompanyModel(
             company_scd_key="COMP001_v1",
@@ -203,8 +203,8 @@ def test_compare_companies_with_diffs(service):
 
     output = service.compare_companies_with_diffs(["COMP001", "COMP002"])
 
-    assert len(output.companies) == 2
-    assert any(diff.column == "country" for diff in output.diffs)
+    assert len(output) >= 1
+    assert any(diff.column == "country" for diff in output)
 
 
 @pytest.mark.parametrize(
@@ -218,8 +218,8 @@ def test_compare_companies_with_diffs(service):
                     company_id="COMP001",
                     document_version=1,
                     event_time="2024-01-01T00:00:00Z",
-                    series_type="rating",
-                    series_name="business_risk_score",
+                    column_name="rating",
+                    metric_name="business_risk_score",
                     series_value="B",
                 ),
                 CompanyHistoryPointModel(
@@ -227,8 +227,8 @@ def test_compare_companies_with_diffs(service):
                     company_id="COMP001",
                     document_version=2,
                     event_time="2025-01-01T00:00:00Z",
-                    series_type="credit_metric",
-                    series_name="scope_adjusted_debt_ebitda",
+                    column_name="credit_metric",
+                    metric_name="scope_adjusted_debt_ebitda",
                     series_value="18.49",
                     year_label="2025E",
                     is_estimate=True,
@@ -241,12 +241,12 @@ def test_get_company_history(service, company_id, history):
     """Test that get_company_history returns time-series data."""
     service.company_provider.get_history.return_value = history
 
-    output = service.get_company_history(company_id)
+    output = service.get_company_history(company_id, column_name="industry_risk_score")
 
     service.company_provider.get_history.assert_called_once_with(
         company_id,
-        series_type=None,
-        series_name=None,
+        column_name="industry_risk_score",
+        metric_name=None,
         year_label=None,
     )
     assert output == history
@@ -257,7 +257,7 @@ def test_get_company_history_notfound(service):
     service.company_provider.get_history.side_effect = NotFound
 
     with pytest.raises(NotFound):
-        service.get_company_history("UnknownCompany")
+        service.get_company_history("UnknownCompany", column_name="industry_risk_score")
 
 
 def test_get_company_history_with_filters(service):
@@ -268,8 +268,8 @@ def test_get_company_history_with_filters(service):
             company_id="COMP001",
             document_version=1,
             event_time="2024-01-01T00:00:00Z",
-            series_type="rating",
-            series_name="business_risk_score",
+            column_name="rating",
+            metric_name="business_risk_score",
             series_value="B",
         )
     ]
@@ -277,15 +277,15 @@ def test_get_company_history_with_filters(service):
 
     output = service.get_company_history(
         "COMP001",
-        series_type="rating",
-        series_name="business_risk_score",
+        column_name="rating",
+        metric_name="business_risk_score",
         year_label="2025E",
     )
 
     service.company_provider.get_history.assert_called_once_with(
         "COMP001",
-        series_type="rating",
-        series_name="business_risk_score",
+        column_name="rating",
+        metric_name="business_risk_score",
         year_label="2025E",
     )
     assert output == expected

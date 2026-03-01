@@ -17,10 +17,14 @@ from pipeline_types import FileProcessLog, PipelineRunMetrics
 
 
 class PostgresRepository:
+    """Repository for raw ingestion, observability, and pipeline state in Postgres."""
+
     def __init__(self, db_config: DbConfig) -> None:
+        """Instantiate repository with database connectivity settings."""
         self.db_config = db_config
 
     def _conn_str(self) -> str:
+        """Build a psycopg2 DSN string from :class:`DbConfig`."""
         return (
             f"host={self.db_config.host} "
             f"port={self.db_config.port} "
@@ -31,6 +35,7 @@ class PostgresRepository:
 
     @staticmethod
     def build_source_file_fields(source_file: str | Path) -> tuple[str, str | None]:
+        """Return absolute source path and UTC modified timestamp as ISO text."""
         source_path = Path(source_file).resolve()
         source_modified_at_utc: str | None = None
         try:
@@ -42,6 +47,7 @@ class PostgresRepository:
 
     @staticmethod
     def get_source_modified_at_utc(source_file: str | Path) -> datetime | None:
+        """Return UTC last-modified timestamp for a source file, if available."""
         source_path = Path(source_file).resolve()
         try:
             stats = source_path.stat()
@@ -51,12 +57,14 @@ class PostgresRepository:
 
     @staticmethod
     def build_company_id(company_name: str | None) -> str:
+        """Normalize company name into a stable snake_case business identifier."""
         base = (company_name or "").strip().lower()
         normalized = re.sub(r"[^a-z0-9]+", "_", base)
         normalized = re.sub(r"_+", "_", normalized).strip("_")
         return normalized or "unknown_company"
 
     def get_incremental_cutoff(self) -> datetime | None:
+        """Read the max source timestamp from raw history for incremental loads."""
         sql = "SELECT MAX(source_modified_at_utc) FROM raw.rating_assessments_history;"
         try:
             with psycopg2.connect(self._conn_str()) as conn:
@@ -70,6 +78,7 @@ class PostgresRepository:
             raise
 
     def get_pipeline_state_cutoff(self, pipeline_name: str) -> datetime | None:
+        """Read persisted incremental cutoff from `obs.pipeline_state`."""
         sql = """
         SELECT max_source_modified_at_utc
         FROM obs.pipeline_state
@@ -87,6 +96,7 @@ class PostgresRepository:
             raise
 
     def _ensure_rating_assessments_schema(self, cur) -> None:
+        """Create and evolve `raw.rating_assessments_history` and related indexes."""
         def _column_data_type(column_name: str) -> str | None:
             cur.execute(
                 """
@@ -147,6 +157,10 @@ class PostgresRepository:
             "ALTER TABLE raw.rating_assessments_history ADD COLUMN IF NOT EXISTS source_modified_at_utc TIMESTAMPTZ;",
             "ALTER TABLE raw.rating_assessments_history DROP COLUMN IF EXISTS extracted_at;",
             "ALTER TABLE raw.rating_assessments_history DROP COLUMN IF EXISTS rating_date;",
+            "CREATE INDEX IF NOT EXISTS idx_rating_assessments_history_source_modified_at ON raw.rating_assessments_history (source_modified_at_utc DESC);",
+            "CREATE INDEX IF NOT EXISTS idx_rating_assessments_history_company_source_modified ON raw.rating_assessments_history (company_id, source_modified_at_utc DESC);",
+            "CREATE INDEX IF NOT EXISTS idx_rating_assessments_history_source_file_path ON raw.rating_assessments_history (source_file_path);",
+            "CREATE INDEX IF NOT EXISTS idx_rating_assessments_history_ingested_at ON raw.rating_assessments_history (ingested_at DESC);",
         ]:
             cur.execute(statement)
         cur.execute(
@@ -239,6 +253,7 @@ class PostgresRepository:
         )
 
     def _ensure_observability_schema(self, cur) -> None:
+        """Create and evolve observability tables and performance indexes."""
         cur.execute("CREATE SCHEMA IF NOT EXISTS obs;")
         cur.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto;")
         cur.execute(
@@ -346,20 +361,38 @@ class PostgresRepository:
             );
             """
         )
+        for statement in [
+            "CREATE INDEX IF NOT EXISTS idx_pipeline_runs_name_started ON obs.pipeline_runs (pipeline_name, started_at DESC);",
+            "CREATE INDEX IF NOT EXISTS idx_pipeline_runs_status_started ON obs.pipeline_runs (status, started_at DESC);",
+            "CREATE INDEX IF NOT EXISTS idx_file_ingestion_events_ingested ON obs.file_ingestion_events (ingested_at DESC, event_id DESC);",
+            "CREATE INDEX IF NOT EXISTS idx_file_ingestion_events_run ON obs.file_ingestion_events (run_id);",
+            "CREATE INDEX IF NOT EXISTS idx_file_ingestion_events_status ON obs.file_ingestion_events (status);",
+            "CREATE INDEX IF NOT EXISTS idx_file_ingestion_events_source_modified ON obs.file_ingestion_events (source_modified_at_utc DESC);",
+            "CREATE INDEX IF NOT EXISTS idx_data_quality_results_event_created ON obs.data_quality_rule_results (event_id, created_at);",
+            "CREATE INDEX IF NOT EXISTS idx_data_quality_results_run_created ON obs.data_quality_rule_results (run_id, created_at);",
+            "CREATE INDEX IF NOT EXISTS idx_lineage_events_event_created ON obs.lineage_events (event_id, created_at);",
+            "CREATE INDEX IF NOT EXISTS idx_lineage_events_run_created ON obs.lineage_events (run_id, created_at);",
+            "CREATE INDEX IF NOT EXISTS idx_processed_files_last_run ON obs.processed_files (last_run_id);",
+            "CREATE INDEX IF NOT EXISTS idx_processed_files_source_modified ON obs.processed_files (source_modified_at_utc DESC);",
+        ]:
+            cur.execute(statement)
 
     def ensure_rating_assessments_schema(self) -> None:
+        """Ensure raw ingestion schema exists and is up to date."""
         with psycopg2.connect(self._conn_str()) as conn:
             with conn.cursor() as cur:
                 self._ensure_rating_assessments_schema(cur)
             conn.commit()
 
     def ensure_observability_schema(self) -> None:
+        """Ensure observability schema exists and is up to date."""
         with psycopg2.connect(self._conn_str()) as conn:
             with conn.cursor() as cur:
                 self._ensure_observability_schema(cur)
             conn.commit()
 
     def insert_rating_assessment(self, source_file: str, payload: dict) -> dict | None:
+        """Insert one extracted record into raw history with idempotent conflict handling."""
         sql_insert = """
         WITH next_version AS (
             SELECT COALESCE(MAX(document_version), 0) + 1 AS version
@@ -478,6 +511,7 @@ class PostgresRepository:
         return inserted
 
     def insert_pipeline_run_start(self, run_id: str, pipeline_name: str, started_at: datetime) -> None:
+        """Insert or reset a pipeline run row at run start."""
         sql = """
         INSERT INTO obs.pipeline_runs (run_id, pipeline_name, started_at, status)
         VALUES (%s, %s, %s, 'running')
@@ -500,6 +534,7 @@ class PostgresRepository:
         files_discovered: int,
         status: str,
     ) -> None:
+        """Update pipeline run completion status and aggregate execution metrics."""
         sql = """
         UPDATE obs.pipeline_runs
         SET ended_at = NOW(),
@@ -557,6 +592,7 @@ class PostgresRepository:
         warning_message: str | None,
         error_message: str | None,
     ) -> str:
+        """Insert one per-file ingestion event and return its generated event id."""
         sql = """
         INSERT INTO obs.file_ingestion_events (
             run_id,
@@ -609,6 +645,7 @@ class PostgresRepository:
         results: list[RuleOutcome],
         details: dict | None = None,
     ) -> None:
+        """Persist business-rule outcomes and optional details for audit/reporting."""
         if not results and not details:
             return
         sql = """
@@ -645,6 +682,7 @@ class PostgresRepository:
         target_row_id: str | None,
         target_record_hash: str | None,
     ) -> None:
+        """Persist lineage from source file payload to inserted raw target row."""
         sql = """
         INSERT INTO obs.lineage_events (
             run_id, event_id, source_file_path, extracted_payload_hash,
@@ -676,6 +714,7 @@ class PostgresRepository:
         file_hash: str,
         status: str,
     ) -> None:
+        """Upsert processed file fingerprint to support incremental idempotent runs."""
         if source_modified_at_utc is None:
             return
         sql = """
@@ -713,6 +752,7 @@ class PostgresRepository:
         max_source_modified_at_utc: datetime | None,
         processed_files_count_increment: int,
     ) -> None:
+        """Upsert incremental pipeline cursor and processed file counters."""
         sql = """
         INSERT INTO obs.pipeline_state (
             pipeline_name,
@@ -749,6 +789,7 @@ class PostgresRepository:
             conn.commit()
 
     def insert_run_log(self, metrics: PipelineRunMetrics, duration_seconds: float) -> None:
+        """Write backward-compatible run summary into legacy `sys.run_logs`."""
         sql_schema = "CREATE SCHEMA IF NOT EXISTS sys;"
         sql_table = """
         CREATE TABLE IF NOT EXISTS sys.run_logs (
@@ -829,6 +870,7 @@ class PostgresRepository:
             conn.commit()
 
     def insert_file_logs(self, run_id: str, file_logs: list[FileProcessLog]) -> None:
+        """Write backward-compatible per-file logs into legacy `sys.file_logs`."""
         if not file_logs:
             return
 
@@ -876,6 +918,7 @@ class PostgresRepository:
             conn.commit()
 
     def query_violation_count(self, query: str) -> int:
+        """Execute a scalar query and return an integer count value."""
         with psycopg2.connect(self._conn_str()) as conn:
             with conn.cursor() as cur:
                 cur.execute(query)

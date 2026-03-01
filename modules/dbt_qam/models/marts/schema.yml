@@ -89,17 +89,10 @@ models:
       - name: event_time
         tests:
           - not_null
-      - name: source_modified_date_key
-      - name: dim_full_date
-      - name: dim_year
-      - name: dim_month
-      - name: dim_day
-      - name: dim_year_month
-      - name: dim_quarter
-      - name: series_type
+      - name: column_name
         tests:
           - not_null
-      - name: series_name
+      - name: metric_name
         tests:
           - not_null
 

@@ -1,3 +1,12 @@
+{{
+  config(
+    materialized='incremental',
+    unique_key='date_key',
+    incremental_strategy='delete+insert',
+    on_schema_change='sync_all_columns'
+  )
+}}
+
 with dates as (
     select distinct source_modified_date as full_date
     from {{ ref('stg_rating_assessments_history') }}

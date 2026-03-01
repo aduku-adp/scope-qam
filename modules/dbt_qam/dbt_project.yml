@@ -22,6 +22,9 @@ clean-targets:         # directories to be removed by `dbt clean`
   - "target"
   - "dbt_packages"
 
+on-run-end:
+  - "{{ ensure_performance_indexes() }}"
+
 
 # Configuring models
 # Full documentation: https://docs.getdbt.com/docs/configuring-models
@@ -41,6 +44,10 @@ models:
       facts:
         +materialized: table
         +schema: facts
-    snapshots:
+    reports:
       +materialized: table
-      +schema: snapshots
+      +schema: reports
+
+snapshots:
+  dbt_qam:
+    +target_schema: snapshots

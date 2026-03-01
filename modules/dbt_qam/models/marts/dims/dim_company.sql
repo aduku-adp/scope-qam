@@ -1,3 +1,12 @@
+{{
+  config(
+    materialized='incremental',
+    unique_key='company_scd_key',
+    incremental_strategy='delete+insert',
+    on_schema_change='sync_all_columns'
+  )
+}}
+
 with base as (
     select
         company_id,

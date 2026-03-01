@@ -22,10 +22,13 @@ class Conflict(Exception):
 
 @dataclass
 class CompanyDB:
-    """DB Company model (dims.dim_company)."""
+    """DB Company model (reports.rep_company)."""
 
-    company_scd_key: str
     company_id: str
+    rep_company_key: Optional[str] = None
+    assessment_key: Optional[str] = None
+    record_hash: Optional[str] = None
+    company_scd_key: Optional[str] = None
     company_name: Optional[str] = None
     country: Optional[str] = None
     corporate_sector: Optional[str] = None
@@ -41,10 +44,29 @@ class CompanyDB:
     start_at: Optional[datetime] = None
     end_at: Optional[datetime] = None
     is_active: Optional[bool] = True
+    source_modified_date_key: Optional[int] = None
+    source_modified_date: Optional[datetime] = None
+    source_file_path: Optional[str] = None
+    source_modified_at_utc: Optional[datetime] = None
+    ingested_at: Optional[datetime] = None
+    business_risk_score: Optional[str] = None
+    financial_risk_score: Optional[str] = None
+    blended_industry_risk_profile: Optional[str] = None
+    competitive_positioning: Optional[str] = None
+    market_share: Optional[str] = None
+    diversification: Optional[str] = None
+    operating_profitability: Optional[str] = None
+    sector_company_specific_factors_1: Optional[str] = None
+    sector_company_specific_factors_2: Optional[str] = None
+    leverage: Optional[str] = None
+    interest_cover: Optional[str] = None
+    cash_flow_cover: Optional[str] = None
+    liquidity_adjustment_notches: Optional[int] = None
+    credit_metrics: Optional[list[dict]] = None
 
 
 class CompanyProvider:
-    """Company provider for dims.dim_company table."""
+    """Company provider for reports.rep_company table."""
 
     def __init__(self, connection: PgConnection):
         self.conn = connection
@@ -62,7 +84,7 @@ class CompanyProvider:
     def _to_model(self, db_company: CompanyDB) -> CompanyModel:
         """Return the company model."""
         return CompanyModel(
-            company_scd_key=db_company.company_scd_key,
+            rep_company_key=db_company.rep_company_key,
             company_id=db_company.company_id,
             company_name=db_company.company_name,
             country=db_company.country,
@@ -79,13 +101,32 @@ class CompanyProvider:
             start_at=db_company.start_at,
             end_at=db_company.end_at,
             is_active=db_company.is_active,
+            source_modified_date_key=db_company.source_modified_date_key,
+            source_modified_date=db_company.source_modified_date,
+            source_file_path=db_company.source_file_path,
+            source_modified_at_utc=db_company.source_modified_at_utc,
+            ingested_at=db_company.ingested_at,
+            business_risk_score=db_company.business_risk_score,
+            financial_risk_score=db_company.financial_risk_score,
+            blended_industry_risk_profile=db_company.blended_industry_risk_profile,
+            competitive_positioning=db_company.competitive_positioning,
+            market_share=db_company.market_share,
+            diversification=db_company.diversification,
+            operating_profitability=db_company.operating_profitability,
+            sector_company_specific_factors_1=db_company.sector_company_specific_factors_1,
+            sector_company_specific_factors_2=db_company.sector_company_specific_factors_2,
+            leverage=db_company.leverage,
+            interest_cover=db_company.interest_cover,
+            cash_flow_cover=db_company.cash_flow_cover,
+            liquidity_adjustment_notches=db_company.liquidity_adjustment_notches,
+            credit_metrics=db_company.credit_metrics,
         )
 
     def _list_all(self, active_only: bool = True) -> list[CompanyDB]:
         """List companies."""
         query = """
             SELECT *
-            FROM dims.dim_company
+            FROM reports.rep_company
         """
 
         if active_only:
@@ -105,7 +146,7 @@ class CompanyProvider:
         """
         query = """
             SELECT *
-            FROM dims.dim_company
+            FROM reports.rep_company
             WHERE company_id = %s
         """
 
@@ -127,7 +168,7 @@ class CompanyProvider:
         """Get all versions for a company by company_id."""
         query = """
             SELECT *
-            FROM dims.dim_company
+            FROM reports.rep_company
             WHERE company_id = %s
             ORDER BY document_version DESC, start_at DESC
         """
@@ -144,6 +185,9 @@ class CompanyProvider:
     def compare(self, company_ids: list[str], as_of_date: datetime | None = None) -> list[CompanyModel]:
         """Compare companies at latest or at a specific point in time."""
         select_cols = """
+            rep_company_key,
+            assessment_key,
+            record_hash,
             company_scd_key,
             company_id,
             company_name,
@@ -160,7 +204,26 @@ class CompanyProvider:
             document_version,
             start_at,
             end_at,
-            is_active
+            is_active,
+            source_modified_date_key,
+            source_modified_date,
+            source_file_path,
+            source_modified_at_utc,
+            ingested_at,
+            business_risk_score,
+            financial_risk_score,
+            blended_industry_risk_profile,
+            competitive_positioning,
+            market_share,
+            diversification,
+            operating_profitability,
+            sector_company_specific_factors_1,
+            sector_company_specific_factors_2,
+            leverage,
+            interest_cover,
+            cash_flow_cover,
+            liquidity_adjustment_notches,
+            credit_metrics
         """
         if as_of_date is None:
             query = """
@@ -171,7 +234,7 @@ class CompanyProvider:
                             partition by company_id
                             order by start_at desc, document_version desc
                         ) as rn
-                    from dims.dim_company
+                    from reports.rep_company
                     where company_id = any(%s)
                       and is_active = true
                 )
@@ -191,7 +254,7 @@ class CompanyProvider:
                             partition by company_id
                             order by start_at desc, document_version desc
                         ) as rn
-                    from dims.dim_company
+                    from reports.rep_company
                     where company_id = any(%s)
                       and start_at <= %s
                       and (end_at is null or end_at > %s)
@@ -216,8 +279,8 @@ class CompanyProvider:
     def get_history(
         self,
         company_id: str,
-        series_type: str | None = None,
-        series_name: str | None = None,
+        column_name: str,
+        metric_name: str | None = None,
         year_label: str | None = None,
     ) -> list[CompanyHistoryPointModel]:
         """Get company assessment history as time-series points."""
@@ -226,38 +289,26 @@ class CompanyProvider:
                 timeseries_key,
                 company_id,
                 document_version,
-                source_modified_at_utc,
                 event_time,
-                source_file_path,
-                source_modified_date_key,
-                source_modified_date,
-                dim_full_date,
-                dim_year,
-                dim_month,
-                dim_day,
-                dim_year_month,
-                dim_quarter,
-                series_type,
-                series_name,
+                column_name,
+                metric_name,
                 series_value,
                 year_label,
                 is_estimate
             FROM facts.fct_company_timeseries
             WHERE company_id = %s
+              AND column_name = %s
         """
-        params: list[str] = [company_id]
+        params: list[str] = [company_id, column_name]
 
-        if series_type:
-            query += " AND series_type = %s"
-            params.append(series_type)
-        if series_name:
-            query += " AND series_name = %s"
-            params.append(series_name)
+        if metric_name:
+            query += " AND metric_name = %s"
+            params.append(metric_name)
         if year_label:
             query += " AND year_label = %s"
             params.append(year_label)
 
-        query += " ORDER BY series_type ASC, series_name ASC, document_version ASC, event_time ASC, year_label ASC"
+        query += " ORDER BY column_name ASC, metric_name ASC, document_version ASC, event_time ASC, year_label ASC"
 
         with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(query, tuple(params))

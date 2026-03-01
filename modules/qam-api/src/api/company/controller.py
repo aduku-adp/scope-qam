@@ -7,7 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, HTTPException, Path, Query
 from helpers.formatter import ErrorModel, OutputModel, format_response
 from api.company.models import (
-    CompanyCompareResultModel,
+    CompanyComparisonDiffModel,
     CompanyHistoryPointModel,
     CompanyModel,
 )
@@ -70,13 +70,15 @@ def build(
                 examples=["2026-02-25T00:00:00Z"],
             ),
         ] = None,
-    ) -> OutputModel[CompanyCompareResultModel]:
+    ) -> OutputModel[list[CompanyComparisonDiffModel]]:
         """Compare multiple companies at latest or at a specific point in time."""
         LOGGER.debug("controller.get: Compare companies")
 
         parsed_ids = [item.strip() for item in company_ids.split(",") if item.strip()]
         if not parsed_ids:
-            raise HTTPException(status_code=400, detail="company_ids must include at least one id")
+            raise HTTPException(
+                status_code=400, detail="company_ids must include at least one id"
+            )
 
         try:
             compared = service.compare_companies_with_diffs(
@@ -151,25 +153,25 @@ def build(
             str,
             Path(description="Company id", examples=["company_b"]),
         ],
-        series_type: Annotated[
-            str | None,
+        column_name: Annotated[
+            str,
             Query(
-                description="Optional series type filter (e.g. rating, credit_metric).",
-                examples=["rating"],
+                description="Level-1 selector: root column name or top-level block name (e.g. industry_risk_score, credit_metrics).",
+                examples=["industry_risk_score"],
             ),
-        ] = None,
-        series_name: Annotated[
+        ],
+        metric_name: Annotated[
             str | None,
             Query(
-                description="Optional series name filter (e.g. business_risk_score).",
-                examples=["business_risk_score"],
+                description="Optional Level-2 selector (e.g. credit_metrics.liquidity -> metric_name=liquidity).",
+                examples=["liquidity"],
             ),
         ] = None,
         year_label: Annotated[
             str | None,
             Query(
-                description="Optional year label filter (e.g. 2025E).",
-                examples=["2025E"],
+                description="Optional Level-3 selector (e.g. credit_metrics.liquidity.year_label -> year_label=2025).",
+                examples=["2025"],
             ),
         ] = None,
     ) -> OutputModel[list[CompanyHistoryPointModel]]:
@@ -179,8 +181,8 @@ def build(
         try:
             history = service.get_company_history(
                 company_id,
-                series_type=series_type,
-                series_name=series_name,
+                column_name=column_name,
+                metric_name=metric_name,
                 year_label=year_label,
             )
         except Exception as exc:

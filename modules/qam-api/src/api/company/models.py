@@ -1,6 +1,6 @@
 """Common models for payload and response."""
 
-from typing import Optional
+from typing import Any, Optional
 
 # pylint: disable=invalid-name, no-self-argument
 from pydantic import BaseModel, Field, model_validator
@@ -12,9 +12,10 @@ from datetime import date, datetime
 class CompanyModel(BaseModel):
     """Company model."""
 
-    company_scd_key: str = Field(
-        description="Surrogate key for the company (SCD identifier).",
-        examples=["COMP123_v1"],
+    rep_company_key: Optional[str] = Field(
+        description="Primary key of reports.rep_company row.",
+        examples=["a9f1f3e4..."],
+        default=None,
     )
 
     company_id: str = Field(
@@ -113,6 +114,28 @@ class CompanyModel(BaseModel):
         default=True,
     )
 
+    source_modified_date_key: Optional[int] = Field(default=None)
+    source_modified_date: Optional[date] = Field(default=None)
+    source_file_path: Optional[str] = Field(default=None)
+    source_modified_at_utc: Optional[datetime] = Field(default=None)
+    ingested_at: Optional[datetime] = Field(default=None)
+
+    business_risk_score: Optional[str] = Field(default=None)
+    financial_risk_score: Optional[str] = Field(default=None)
+    blended_industry_risk_profile: Optional[str] = Field(default=None)
+    competitive_positioning: Optional[str] = Field(default=None)
+    market_share: Optional[str] = Field(default=None)
+    diversification: Optional[str] = Field(default=None)
+    operating_profitability: Optional[str] = Field(default=None)
+    sector_company_specific_factors_1: Optional[str] = Field(default=None)
+    sector_company_specific_factors_2: Optional[str] = Field(default=None)
+    leverage: Optional[str] = Field(default=None)
+    interest_cover: Optional[str] = Field(default=None)
+    cash_flow_cover: Optional[str] = Field(default=None)
+    liquidity_adjustment_notches: Optional[int] = Field(default=None)
+
+    credit_metrics: Optional[list[dict[str, Any]]] = Field(default=None)
+
     @model_validator(mode="after")
     def validate_scd_dates(self) -> "CompanyModel":
         """Ensure SCD validity logic is consistent."""
@@ -155,25 +178,15 @@ class CompanyHistoryPointModel(BaseModel):
         ge=1,
     )
 
-    source_modified_at_utc: Optional[datetime] = Field(default=None)
     event_time: datetime = Field(
         description="Timestamp of the time-series event.",
         examples=["2026-02-25T22:37:26.360512Z"],
     )
-    source_file_path: Optional[str] = Field(default=None)
-    source_modified_date_key: Optional[int] = Field(default=None)
-    source_modified_date: Optional[date] = Field(default=None)
-    dim_full_date: Optional[date] = Field(default=None)
-    dim_year: Optional[int] = Field(default=None)
-    dim_month: Optional[int] = Field(default=None)
-    dim_day: Optional[int] = Field(default=None)
-    dim_year_month: Optional[str] = Field(default=None)
-    dim_quarter: Optional[int] = Field(default=None)
-    series_type: str = Field(
+    column_name: str = Field(
         description="Series domain, e.g. rating or credit_metric.",
         examples=["credit_metric"],
     )
-    series_name: str = Field(
+    metric_name: str = Field(
         description="Series identifier/name.",
         examples=["scope_adjusted_debt_ebitda"],
     )
@@ -192,7 +205,7 @@ class CompanyComparisonDiffModel(BaseModel):
         description="Column name that differs across compared companies.",
         examples=["country"],
     )
-    values_by_company_id: dict[str, str | int | float | bool | datetime | None] = Field(
+    values_by_company_id: dict[str, Any] = Field(
         description="Per-company value for this column.",
         examples=[{"company_a": "DE", "company_b": "CH"}],
     )

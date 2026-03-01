@@ -1,3 +1,12 @@
+{{
+  config(
+    materialized='incremental',
+    unique_key='industry_risk_key',
+    incremental_strategy='delete+insert',
+    on_schema_change='sync_all_columns'
+  )
+}}
+
 with base as (
     select distinct
         industry_classification,

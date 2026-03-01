@@ -11,6 +11,8 @@ from typing import Any
 
 @dataclass(frozen=True)
 class RuleOutcome:
+    """Normalized result for one business-rule evaluation."""
+
     rule_id: str
     level: str
     status: str
@@ -19,12 +21,16 @@ class RuleOutcome:
 
 
 class BusinessRuleEngine:
+    """Evaluate payload-level business rules loaded from a YAML configuration file."""
+
     def __init__(self, rules_path: Path) -> None:
+        """Instantiate the engine and load rule definitions from disk."""
         self.rules_path = rules_path
         self.rules = self._load_rules(rules_path)
 
     @staticmethod
     def _load_rules(rules_path: Path) -> dict[str, Any]:
+        """Load YAML rule configuration and guarantee expected top-level keys."""
         if not rules_path.exists():
             return {"payload_rules": []}
         try:
@@ -37,6 +43,7 @@ class BusinessRuleEngine:
 
     @staticmethod
     def _get_path_value(payload: dict[str, Any], path: str) -> Any:
+        """Resolve a dotted path against a nested dictionary payload."""
         current: Any = payload
         for part in path.split("."):
             if not isinstance(current, dict) or part not in current:
@@ -46,6 +53,7 @@ class BusinessRuleEngine:
 
     @staticmethod
     def _iter_scalar_paths(value: Any, prefix: str) -> list[tuple[str, Any]]:
+        """Flatten nested dict/list values into scalar `(path, value)` tuples."""
         if isinstance(value, dict):
             out: list[tuple[str, Any]] = []
             for key, item in value.items():
@@ -61,6 +69,7 @@ class BusinessRuleEngine:
         return [(prefix, value)]
 
     def _evaluate_industry_weight_sum(self, payload: dict[str, Any], rule: dict[str, Any]) -> int:
+        """Validate that industry weights sum to the configured target value."""
         cfg = rule.get("config", {})
         expected = float(cfg.get("expected_sum", 1.0))
         tolerance = float(cfg.get("tolerance", 0.001))
@@ -74,6 +83,7 @@ class BusinessRuleEngine:
         return 0 if abs(total - expected) <= tolerance else 1
 
     def _evaluate_score_scale(self, payload: dict[str, Any], rule: dict[str, Any]) -> int:
+        """Validate rating score fields against an allowed score scale."""
         cfg = rule.get("config", {})
         allowed_values = {str(v).strip().upper() for v in cfg.get("allowed_values", [])}
         paths = cfg.get("paths", [])
@@ -98,6 +108,7 @@ class BusinessRuleEngine:
     def _evaluate_credit_metrics_year_value_logic(
         self, payload: dict[str, Any], rule: dict[str, Any]
     ) -> int:
+        """Validate year format, duplicates, and value typing in credit metrics."""
         cfg = rule.get("config", {})
         year_regex = re.compile(str(cfg.get("year_regex", r"^[0-9]{4}(E)?$")))
         require_numeric = bool(cfg.get("require_numeric_value", True))
@@ -129,6 +140,7 @@ class BusinessRuleEngine:
         return violations
 
     def _evaluate_credit_metrics_outlier(self, payload: dict[str, Any], rule: dict[str, Any]) -> int:
+        """Validate credit metric values against configured min/max bounds."""
         cfg = rule.get("config", {})
         min_value = float(cfg.get("min_value", -10000.0))
         max_value = float(cfg.get("max_value", 10000.0))
@@ -148,6 +160,7 @@ class BusinessRuleEngine:
 
     @staticmethod
     def _resolve_status(violations: int, fail_threshold: int, warn_threshold: int) -> str:
+        """Map violation count to pass/warn/fail using configured thresholds."""
         if violations >= fail_threshold:
             return "fail"
         if violations >= warn_threshold:
@@ -155,6 +168,7 @@ class BusinessRuleEngine:
         return "pass"
 
     def evaluate_payload(self, payload: dict[str, Any]) -> list[RuleOutcome]:
+        """Run all configured payload rules and return normalized outcomes."""
         outcomes: list[RuleOutcome] = []
         for rule in self.rules.get("payload_rules", []):
             rule_id = str(rule.get("id", "unknown_rule"))

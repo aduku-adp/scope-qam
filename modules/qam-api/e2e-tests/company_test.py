@@ -87,7 +87,10 @@ def test_e2e_get_company_history_ok(connectors: Connectors):
         raise AssertionError("No companies loaded in DB; cannot validate history endpoint")
 
     company_id = companies[0]["company_id"]
-    response = connectors.requester.get(f"{BASE_URL}/{company_id}/history", timeout=10)
+    response = connectors.requester.get(
+        f"{BASE_URL}/{company_id}/history?column_name=industry_risk_score",
+        timeout=10,
+    )
     assert response.status_code == 200
     payload = _json_payload_or_fail(response)
     assert payload["status"] == "OK"
@@ -112,12 +115,11 @@ def test_e2e_compare_companies_ok(connectors: Connectors):
     assert response.status_code == 200
     payload = _json_payload_or_fail(response)
     assert payload["status"] == "OK"
-    assert isinstance(payload["data"], dict)
-    assert isinstance(payload["data"].get("companies"), list)
-    assert isinstance(payload["data"].get("diffs"), list)
-    returned_ids = {item["company_id"] for item in payload["data"]["companies"]}
-    assert id_1 in returned_ids
-    assert id_2 in returned_ids
+    assert isinstance(payload["data"], list)
+    if payload["data"]:
+        first = payload["data"][0]
+        assert "column" in first
+        assert "values_by_company_id" in first
 
 
 def test_e2e_list_snapshots_ok(connectors: Connectors):

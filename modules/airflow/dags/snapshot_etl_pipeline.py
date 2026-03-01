@@ -17,7 +17,7 @@ DB_ENV = {
 
 with DAG(
     dag_id="snapshot_etl_pipeline",
-    description="Run snapshot dbt model and tests for snap_company",
+    description="Run dbt snapshot and tests for snap_company",
     start_date=datetime(2026, 2, 1),
     schedule="@daily",
     catchup=False,
@@ -29,7 +29,7 @@ with DAG(
         task_id="run_dbt_models",
         bash_command=(
             "cd /opt/airflow/repo/modules/dbt_qam "
-            "&& dbt run --profiles-dir /opt/airflow/repo/modules/dbt_qam --target airflow --select snap_company"
+            "&& dbt snapshot --profiles-dir /opt/airflow/repo/modules/dbt_qam --target airflow --select snap_company"
         ),
         env=DB_ENV,
         append_env=True,

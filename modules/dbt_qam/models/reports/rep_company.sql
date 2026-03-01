@@ -1,53 +1,42 @@
 {{
   config(
     materialized='incremental',
-    incremental_strategy='append'
+    unique_key='rep_company_key',
+    incremental_strategy='delete+insert',
+    on_schema_change='sync_all_columns'
   )
 }}
 
 with assessment as (
     select
-        ranked.assessment_key,
-        ranked.record_hash,
-        ranked.company_id,
-        ranked.document_version,
-        ranked.source_modified_date_key,
-        ranked.source_modified_date,
-        ranked.source_file_path,
-        ranked.source_modified_at_utc,
-        ranked.ingested_at,
-        ranked.industry_risk_score as assessment_industry_risk_score,
-        ranked.industry_weight as assessment_industry_weight,
-        ranked.segmentation_criteria as assessment_segmentation_criteria,
-        ranked.business_risk_score,
-        ranked.financial_risk_score,
-        ranked.blended_industry_risk_profile,
-        ranked.competitive_positioning,
-        ranked.market_share,
-        ranked.diversification,
-        ranked.operating_profitability,
-        ranked.sector_company_specific_factors_1,
-        ranked.sector_company_specific_factors_2,
-        ranked.leverage,
-        ranked.interest_cover,
-        ranked.cash_flow_cover,
-        ranked.liquidity_adjustment_notches
-    from (
-        select
-            fa.*,
-            row_number() over (
-                partition by fa.company_id
-                order by
-                    fa.document_version desc,
-                    fa.source_modified_at_utc desc,
-                    fa.ingested_at desc,
-                    fa.assessment_key desc
-            ) as rn
-        from {{ ref('fct_rating_assessment') }} fa
-    ) ranked
-    where ranked.rn = 1
+        fa.assessment_key,
+        fa.record_hash,
+        fa.company_id,
+        fa.document_version,
+        fa.source_modified_date_key,
+        fa.source_modified_date,
+        fa.source_file_path,
+        fa.source_modified_at_utc,
+        fa.ingested_at,
+        fa.industry_risk_score as assessment_industry_risk_score,
+        fa.industry_weight as assessment_industry_weight,
+        fa.segmentation_criteria as assessment_segmentation_criteria,
+        fa.business_risk_score,
+        fa.financial_risk_score,
+        fa.blended_industry_risk_profile,
+        fa.competitive_positioning,
+        fa.market_share,
+        fa.diversification,
+        fa.operating_profitability,
+        fa.sector_company_specific_factors_1,
+        fa.sector_company_specific_factors_2,
+        fa.leverage,
+        fa.interest_cover,
+        fa.cash_flow_cover,
+        fa.liquidity_adjustment_notches
+    from {{ ref('fct_rating_assessment') }} fa
 ),
-company_as_of as (
+company_version as (
     select
         a.assessment_key,
         dc.company_scd_key,
@@ -59,27 +48,16 @@ company_as_of as (
         dc.fiscal_year_end,
         dc.industry_classification,
         dc.industry_risk_score as dim_industry_risk_score,
-        dc.industry_weight as dim_industry_weight,
+        dc.industry_weight as dim_industry_risk_weight,
         dc.segmentation_criteria as dim_segmentation_criteria,
         dc.rating_methodologies_applied,
         dc.start_at,
         dc.end_at,
-        dc.is_active,
-        row_number() over (
-            partition by a.assessment_key
-            order by dc.start_at desc, dc.document_version desc
-        ) as rn
+        dc.is_active
     from assessment a
     left join {{ ref('dim_company') }} dc
         on dc.company_id = a.company_id
-       and dc.is_active = true
-       and dc.start_at <= coalesce(a.source_modified_at_utc, a.ingested_at)
-       and (dc.end_at is null or dc.end_at > coalesce(a.source_modified_at_utc, a.ingested_at))
-),
-company_one as (
-    select *
-    from company_as_of
-    where rn = 1
+       and dc.document_version = a.document_version
 ),
 methodology_agg as (
     select
@@ -160,9 +138,7 @@ credit_metric_agg as (
     group by assessment_key
 )
 select
-    md5(a.assessment_key || '|' || '{{ invocation_id }}') as snapshot_id,
-    '{{ invocation_id }}'::text as snapshot_run_id,
-    now()::timestamptz as snapshot_created_at,
+    a.assessment_key as rep_company_key,
     a.assessment_key,
     a.record_hash,
     a.company_id,
@@ -175,7 +151,7 @@ select
     c.fiscal_year_end,
     coalesce(c.industry_classification, ir.industry_classifications) as industry_classification,
     coalesce(c.dim_industry_risk_score, ir.industry_risk_scores, a.assessment_industry_risk_score) as industry_risk_score,
-    coalesce(c.dim_industry_weight, ir.industry_weights, a.assessment_industry_weight) as industry_weight,
+    coalesce(c.dim_industry_risk_weight, ir.industry_weights, a.assessment_industry_weight) as industry_weight,
     coalesce(c.dim_segmentation_criteria, a.assessment_segmentation_criteria) as segmentation_criteria,
     coalesce(c.rating_methodologies_applied, m.methodology_names) as rating_methodologies_applied,
     a.document_version,
@@ -200,11 +176,9 @@ select
     a.interest_cover,
     a.cash_flow_cover,
     a.liquidity_adjustment_notches,
-    m.methodology_items,
-    ir.industry_risk_items,
     cm.credit_metrics
 from assessment a
-left join company_one c
+left join company_version c
     on a.assessment_key = c.assessment_key
 left join methodology_agg m
     on a.assessment_key = m.assessment_key

@@ -27,6 +27,7 @@ def ensure_table_and_insert(source_file: str, payload: dict, db_config: DbConfig
 
 
 def build_app() -> tuple[CompanyExtractionPipeline, AppConfig]:
+    """Construct and wire all dependencies for the extraction pipeline."""
     app_config = default_app_config()
     db_config = ConfigLoader.load_db_config(app_config.env_file)
     extractor = MasterSheetExtractor(
@@ -45,6 +46,7 @@ def build_app() -> tuple[CompanyExtractionPipeline, AppConfig]:
 
 
 def main() -> None:
+    """Run the extraction pipeline once."""
     pipeline, _app_config = build_app()
     pipeline.run()
 

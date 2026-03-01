@@ -48,6 +48,7 @@ def test_list_ok(provider):
     cursor.execute.assert_called_once()
     query = cursor.execute.call_args[0][0].lower()
     assert "from snapshots.snap_company" in query
+    assert "dbt_scd_id is not null" in query
     assert "company_id = %s" in query
     assert "country = %s" in query
 
@@ -80,3 +81,5 @@ def test_latest_ok(provider):
     query = cursor.execute.call_args[0][0].lower()
     assert "select distinct on (company_id)" in query
     assert "from snapshots.snap_company" in query
+    assert "where dbt_valid_to is null" in query
+    assert "and dbt_scd_id is not null" in query

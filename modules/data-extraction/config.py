@@ -9,6 +9,8 @@ from pathlib import Path
 
 @dataclass(frozen=True)
 class DbConfig:
+    """Database connection settings for the extraction pipeline."""
+
     host: str
     port: int
     user: str
@@ -18,6 +20,8 @@ class DbConfig:
 
 @dataclass(frozen=True)
 class AppConfig:
+    """Runtime configuration for extraction, validation, and file discovery."""
+
     project_root: Path
     data_dir: Path
     env_file: Path
@@ -28,8 +32,11 @@ class AppConfig:
 
 
 class ConfigLoader:
+    """Load application and database configuration from env and .env files."""
+
     @staticmethod
     def parse_env_file(env_path: Path) -> dict[str, str]:
+        """Parse key/value pairs from an env file into a dictionary."""
         values: dict[str, str] = {}
         if not env_path.exists():
             return values
@@ -44,6 +51,7 @@ class ConfigLoader:
 
     @classmethod
     def load_db_config(cls, env_path: Path) -> DbConfig:
+        """Build a :class:`DbConfig` using env vars first, then .env fallback."""
         file_values = cls.parse_env_file(env_path)
 
         def get_value(*keys: str, default: str | None = None) -> str:
@@ -68,6 +76,7 @@ class ConfigLoader:
 
 
 def default_app_config() -> AppConfig:
+    """Return the default app configuration for local and container execution."""
     project_root = Path(__file__).resolve().parents[2]
     return AppConfig(
         project_root=project_root,

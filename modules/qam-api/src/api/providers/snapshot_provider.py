@@ -32,9 +32,14 @@ class SnapshotProvider:
     ) -> list[SnapshotModel]:
         """List snapshots with optional filters."""
         query = """
-            SELECT *
-            FROM snapshots.snap_company
-            WHERE 1 = 1
+            SELECT
+                sc.*,
+                dbt_scd_id as snapshot_id,
+                sc.snapshot_created_at,
+                dbt_valid_from as snapshot_valid_from,
+                dbt_valid_to as snapshot_valid_to
+            FROM snapshots.snap_company sc
+            WHERE dbt_scd_id IS NOT NULL
         """
         params: list[object] = []
 
@@ -59,7 +64,7 @@ class SnapshotProvider:
 
         query += (
             " ORDER BY company_id ASC, source_modified_at_utc DESC, "
-            "snapshot_created_at DESC, document_version DESC"
+            "dbt_valid_from DESC, document_version DESC"
         )
 
         with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
@@ -71,9 +76,14 @@ class SnapshotProvider:
     def get(self, snapshot_id: str) -> SnapshotModel:
         """Get one snapshot by snapshot_id."""
         query = """
-            SELECT *
-            FROM snapshots.snap_company
-            WHERE snapshot_id = %s
+            SELECT
+                sc.*,
+                dbt_scd_id as snapshot_id,
+                sc.snapshot_created_at,
+                dbt_valid_from as snapshot_valid_from,
+                dbt_valid_to as snapshot_valid_to
+            FROM snapshots.snap_company sc
+            WHERE dbt_scd_id = %s
         """
         with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(query, (snapshot_id,))
@@ -87,9 +97,16 @@ class SnapshotProvider:
     def latest(self) -> list[SnapshotModel]:
         """Get latest snapshot for each company."""
         query = """
-            SELECT DISTINCT ON (company_id) *
-            FROM snapshots.snap_company
-            ORDER BY company_id ASC, source_modified_at_utc DESC, snapshot_created_at DESC, document_version DESC
+            SELECT DISTINCT ON (company_id)
+                sc.*,
+                dbt_scd_id as snapshot_id,
+                sc.snapshot_created_at,
+                dbt_valid_from as snapshot_valid_from,
+                dbt_valid_to as snapshot_valid_to
+            FROM snapshots.snap_company sc
+            WHERE dbt_valid_to IS NULL
+              AND dbt_scd_id IS NOT NULL
+            ORDER BY company_id ASC, source_modified_at_utc DESC, dbt_valid_from DESC, document_version DESC
         """
         with self.conn.cursor(cursor_factory=RealDictCursor) as cur:
             cur.execute(query)

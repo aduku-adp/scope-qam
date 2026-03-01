@@ -1,0 +1,18 @@
+version: 2
+
+models:
+  - name: rep_company
+    columns:
+      - name: rep_company_key
+        tests:
+          - not_null
+          - unique
+      - name: company_id
+        tests:
+          - not_null
+      - name: document_version
+        tests:
+          - not_null
+      - name: source_modified_at_utc
+        tests:
+          - not_null

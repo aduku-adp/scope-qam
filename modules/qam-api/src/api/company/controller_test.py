@@ -8,7 +8,6 @@ from fastapi.testclient import TestClient
 
 from . import controller
 from api.company.models import (
-    CompanyCompareResultModel,
     CompanyComparisonDiffModel,
     CompanyHistoryPointModel,
     CompanyModel,
@@ -80,35 +79,14 @@ def test_get_companies_notfound(app, mock_service):
 
 
 def test_compare_companies_ok(app, mock_service):
-    """Test GET /companies/compare returns compared companies."""
-    companies = [
-        CompanyModel(
-            company_scd_key="COMP1_v1",
-            company_id="COMP1",
-            company_name="ACME Corp",
-            country="DE",
-            document_version=1,
-            is_active=True,
-        ),
-        CompanyModel(
-            company_scd_key="COMP2_v1",
-            company_id="COMP2",
-            company_name="Globex",
-            country="FR",
-            document_version=1,
-            is_active=True,
-        ),
+    """Test GET /companies/compare returns diffs only."""
+    diffs = [
+        CompanyComparisonDiffModel(
+            column="country",
+            values_by_company_id={"COMP1": "DE", "COMP2": "FR"},
+        )
     ]
-    result = CompanyCompareResultModel(
-        companies=companies,
-        diffs=[
-            CompanyComparisonDiffModel(
-                column="country",
-                values_by_company_id={"COMP1": "DE", "COMP2": "FR"},
-            )
-        ],
-    )
-    mock_service.compare_companies_with_diffs.return_value = result
+    mock_service.compare_companies_with_diffs.return_value = diffs
 
     with TestClient(app) as client:
         response = client.get(
@@ -117,7 +95,9 @@ def test_compare_companies_ok(app, mock_service):
 
         assert response.status_code == 200
         response_json = response.json()
-        assert response_json["data"] == result.model_dump(exclude_none=True, mode="json")
+        assert response_json["data"] == [
+            d.model_dump(exclude_none=True, mode="json") for d in diffs
+        ]
         mock_service.compare_companies_with_diffs.assert_called_once()
         args, kwargs = mock_service.compare_companies_with_diffs.call_args
         assert args[0] == ["COMP1", "COMP2"]
@@ -246,8 +226,8 @@ def test_get_company_versions_notfound(app, mock_service):
                     company_id="COMP1",
                     document_version=1,
                     event_time="2024-01-01T00:00:00Z",
-                    series_type="rating",
-                    series_name="business_risk_score",
+                    column_name="rating",
+                    metric_name="business_risk_score",
                     series_value="B",
                 ),
                 CompanyHistoryPointModel(
@@ -255,8 +235,8 @@ def test_get_company_versions_notfound(app, mock_service):
                     company_id="COMP1",
                     document_version=2,
                     event_time="2025-01-01T00:00:00Z",
-                    series_type="credit_metric",
-                    series_name="scope_adjusted_debt_ebitda",
+                    column_name="credit_metric",
+                    metric_name="scope_adjusted_debt_ebitda",
                     series_value="18.49",
                     year_label="2025E",
                     is_estimate=True,
@@ -270,7 +250,7 @@ def test_get_company_history_ok(app, mock_service, company_id, history):
     mock_service.get_company_history.return_value = history
 
     with TestClient(app) as client:
-        response = client.get(f"/api/companies/{company_id}/history")
+        response = client.get(f"/api/companies/{company_id}/history?column_name=industry_risk_score")
 
         assert response.status_code == 200
         response_json = response.json()
@@ -279,8 +259,8 @@ def test_get_company_history_ok(app, mock_service, company_id, history):
         ]
         mock_service.get_company_history.assert_called_once_with(
             company_id,
-            series_type=None,
-            series_name=None,
+            column_name="industry_risk_score",
+            metric_name=None,
             year_label=None,
         )
 
@@ -290,9 +270,17 @@ def test_get_company_history_notfound(app, mock_service):
     mock_service.get_company_history.side_effect = Exception("Not Found")
 
     with TestClient(app) as client:
-        response = client.get("/api/companies/Unknown/history")
+        response = client.get("/api/companies/Unknown/history?column_name=industry_risk_score")
 
         assert response.status_code >= 400
+
+
+def test_get_company_history_missing_column_name_bad_request(app, mock_service):
+    """Test GET /companies/{company_id}/history requires column_name."""
+    with TestClient(app) as client:
+        response = client.get("/api/companies/COMP1/history")
+
+        assert response.status_code == 422
 
 
 def test_get_company_history_with_filters_ok(app, mock_service):
@@ -303,8 +291,8 @@ def test_get_company_history_with_filters_ok(app, mock_service):
             company_id="COMP1",
             document_version=1,
             event_time="2024-01-01T00:00:00Z",
-            series_type="rating",
-            series_name="business_risk_score",
+            column_name="rating",
+            metric_name="business_risk_score",
             series_value="B",
         )
     ]
@@ -312,7 +300,7 @@ def test_get_company_history_with_filters_ok(app, mock_service):
 
     with TestClient(app) as client:
         response = client.get(
-            "/api/companies/COMP1/history?series_type=rating&series_name=business_risk_score&year_label=2025E"
+            "/api/companies/COMP1/history?column_name=rating&metric_name=business_risk_score&year_label=2025E"
         )
 
         assert response.status_code == 200
@@ -322,7 +310,7 @@ def test_get_company_history_with_filters_ok(app, mock_service):
         ]
         mock_service.get_company_history.assert_called_once_with(
             "COMP1",
-            series_type="rating",
-            series_name="business_risk_score",
+            column_name="rating",
+            metric_name="business_risk_score",
             year_label="2025E",
         )

@@ -24,4 +24,4 @@ EXPOSE $PORT
 USER $APP_USER
 WORKDIR $APP_PATH
 
-CMD exec uvicorn $MAIN:$APP_RUN --host 0.0.0.0 --port $PORT $DEBUG_FLAG
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]

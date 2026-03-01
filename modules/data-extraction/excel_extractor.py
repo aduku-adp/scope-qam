@@ -10,12 +10,16 @@ from openpyxl import load_workbook
 
 
 class MasterSheetExtractor:
+    """Extract and normalize corporate rating data from the workbook MASTER sheet."""
+
     def __init__(self, target_sheet_name: str = "MASTER", data_only: bool = True) -> None:
+        """Instantiate the extractor with workbook-read options."""
         self.target_sheet_name = target_sheet_name
         self.data_only = data_only
 
     @staticmethod
     def _parse_float_value(value: Any) -> float | str | None:
+        """Parse numeric-like values, preserving non-numeric text when needed."""
         if value is None:
             return None
         if isinstance(value, str):
@@ -32,6 +36,7 @@ class MasterSheetExtractor:
 
     @staticmethod
     def _parse_notches(value: Any) -> int | str | None:
+        """Extract the first signed integer from a liquidity/notch cell."""
         if value is None:
             return None
         match = re.search(r"-?\d+", str(value))
@@ -41,18 +46,21 @@ class MasterSheetExtractor:
 
     @staticmethod
     def _normalize_metric_name(metric_name: str) -> str:
+        """Normalize free-text metric labels into snake_case identifiers."""
         normalized = metric_name.strip().lower()
         normalized = re.sub(r"[^a-z0-9]+", "_", normalized)
         return normalized.strip("_")
 
     @staticmethod
     def _get_label_value(master_sheet, label: str) -> Any:
+        """Return the value from column 3 for a given label found in column 2."""
         for row_idx in range(1, master_sheet.max_row + 1):
             if master_sheet.cell(row=row_idx, column=2).value == label:
                 return master_sheet.cell(row=row_idx, column=3).value
         return None
 
     def _extract_credit_metrics(self, master_sheet) -> list[dict[str, Any]]:
+        """Extract credit metrics grid into normalized metric/value payload rows."""
         header_row = None
         for row_idx in range(1, master_sheet.max_row + 1):
             if master_sheet.cell(row=row_idx, column=2).value == "[Scope Credit Metrics]":
@@ -70,6 +78,7 @@ class MasterSheetExtractor:
             years.append(str(year_value))
             col_idx += 1
 
+        # The lock flag is stored in the first column after the year value columns.
         lock_col = 3 + len(years)
         metrics: list[dict[str, Any]] = []
 
@@ -99,6 +108,7 @@ class MasterSheetExtractor:
         return metrics
 
     def _extract_industry_risk(self, master_sheet) -> list[dict[str, Any]]:
+        """Extract industry risk rows as a list of weighted industry risk items."""
         risk_row = None
         score_row = None
         weight_row = None
@@ -137,6 +147,7 @@ class MasterSheetExtractor:
         return items
 
     def extract_workbook(self, workbook_path: Path) -> dict[str, Any]:
+        """Extract a complete structured payload from one workbook."""
         workbook = load_workbook(workbook_path, data_only=self.data_only)
         if self.target_sheet_name not in workbook.sheetnames:
             raise ValueError(f"Sheet '{self.target_sheet_name}' not found in workbook")

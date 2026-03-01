@@ -21,6 +21,8 @@ class SnapshotModel(BaseModel):
     )
     snapshot_run_id: Optional[str] = None
     snapshot_created_at: Optional[datetime] = None
+    snapshot_valid_from: Optional[datetime] = None
+    snapshot_valid_to: Optional[datetime] = None
     assessment_key: Optional[str] = None
     record_hash: Optional[str] = None
     company_scd_key: Optional[str] = None

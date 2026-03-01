@@ -99,7 +99,7 @@ def test_get_ok(provider):
     cursor.execute.assert_called_once()
     assert cursor.execute.call_args[0][1] == ("COMP1",)
     query = cursor.execute.call_args[0][0]
-    assert "FROM dims.dim_company" in query
+    assert "FROM reports.rep_company" in query
     assert "WHERE company_id = %s" in query
 
 
@@ -126,7 +126,7 @@ def test_get_versions_ok(provider):
     cursor.execute.assert_called_once()
     assert cursor.execute.call_args[0][1] == ("COMP1",)
     query = cursor.execute.call_args[0][0]
-    assert "FROM dims.dim_company" in query
+    assert "FROM reports.rep_company" in query
     assert "WHERE company_id = %s" in query
     assert "ORDER BY document_version DESC" in query
 
@@ -151,7 +151,7 @@ def test_compare_ok_latest(provider):
     cursor.execute.assert_called_once()
     assert cursor.execute.call_args[0][1] == (["COMP1", "COMP2"],)
     query = cursor.execute.call_args[0][0].lower()
-    assert "from dims.dim_company" in query
+    assert "from reports.rep_company" in query
     assert "company_id = any(%s)" in query
     assert "is_active = true" in query
 
@@ -194,8 +194,8 @@ def test_get_history_ok(provider):
             "source_file_path": "/data/corporates_A_1.xlsm",
             "source_modified_date_key": 20240101,
             "source_modified_date": datetime(2024, 1, 1),
-            "series_type": "rating",
-            "series_name": "business_risk_score",
+            "column_name": "rating",
+            "metric_name": "business_risk_score",
             "series_value": "B",
             "year_label": None,
             "is_estimate": None,
@@ -209,24 +209,25 @@ def test_get_history_ok(provider):
             "source_file_path": "/data/corporates_A_2.xlsm",
             "source_modified_date_key": 20250101,
             "source_modified_date": datetime(2025, 1, 1),
-            "series_type": "credit_metric",
-            "series_name": "scope_adjusted_debt_ebitda",
+            "column_name": "credit_metric",
+            "metric_name": "scope_adjusted_debt_ebitda",
             "series_value": "18.49",
             "year_label": "2025E",
             "is_estimate": True,
         },
     ]
 
-    output = provider.get_history("COMP1")
+    output = provider.get_history("COMP1", column_name="industry_risk_score")
 
     assert len(output) == 2
     assert output[0].document_version == 1
     assert output[1].document_version == 2
     cursor.execute.assert_called_once()
-    assert cursor.execute.call_args[0][1] == ("COMP1",)
+    assert cursor.execute.call_args[0][1] == ("COMP1", "industry_risk_score")
     query = cursor.execute.call_args[0][0]
     assert "FROM facts.fct_company_timeseries" in query
     assert "WHERE company_id = %s" in query
+    assert "AND column_name = %s" in query
 
 
 def test_get_history_notfound(provider):
@@ -235,7 +236,7 @@ def test_get_history_notfound(provider):
     cursor.fetchall.return_value = []
 
     with pytest.raises(NotFound):
-        provider.get_history("UNKNOWN")
+        provider.get_history("UNKNOWN", column_name="industry_risk_score")
 
 
 def test_get_history_with_filters(provider):
@@ -251,8 +252,8 @@ def test_get_history_with_filters(provider):
             "source_file_path": "/data/corporates_A_1.xlsm",
             "source_modified_date_key": 20240101,
             "source_modified_date": datetime(2024, 1, 1),
-            "series_type": "rating",
-            "series_name": "business_risk_score",
+            "column_name": "rating",
+            "metric_name": "business_risk_score",
             "series_value": "B",
             "year_label": None,
             "is_estimate": None,
@@ -261,8 +262,8 @@ def test_get_history_with_filters(provider):
 
     output = provider.get_history(
         "COMP1",
-        series_type="rating",
-        series_name="business_risk_score",
+        column_name="rating",
+        metric_name="business_risk_score",
         year_label="2025E",
     )
 
@@ -275,6 +276,6 @@ def test_get_history_with_filters(provider):
         "2025E",
     )
     query = cursor.execute.call_args[0][0]
-    assert "series_type = %s" in query
-    assert "series_name = %s" in query
+    assert "column_name = %s" in query
+    assert "metric_name = %s" in query
     assert "year_label = %s" in query

@@ -8,6 +8,8 @@ from pydantic import BaseModel, ConfigDict, Field, StrictFloat, StrictInt, Stric
 
 
 class CompanyInformation(BaseModel):
+    """Strict schema for the `company_information` payload block."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
 
     name: StrictStr = Field(min_length=1)
@@ -22,12 +24,16 @@ class CompanyInformation(BaseModel):
 
 
 class Methodology(BaseModel):
+    """Strict schema for rating methodology details."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
 
     rating_methodologies_applied: list[StrictStr] = Field(min_length=1)
 
 
 class IndustryRisk(BaseModel):
+    """Strict schema for one industry risk row."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
 
     industry_classification: StrictStr | None = None
@@ -36,6 +42,8 @@ class IndustryRisk(BaseModel):
 
 
 class BusinessRiskComponents(BaseModel):
+    """Strict schema for business-risk component scores."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
 
     blended_industry_risk_profile: StrictStr = Field(min_length=1)
@@ -48,6 +56,8 @@ class BusinessRiskComponents(BaseModel):
 
 
 class BusinessRiskProfile(BaseModel):
+    """Strict schema for business-risk profile block."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
 
     overall_score: StrictStr = Field(min_length=1)
@@ -55,6 +65,8 @@ class BusinessRiskProfile(BaseModel):
 
 
 class FinancialRiskComponents(BaseModel):
+    """Strict schema for financial-risk component scores."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
 
     leverage: StrictStr = Field(min_length=1)
@@ -64,6 +76,8 @@ class FinancialRiskComponents(BaseModel):
 
 
 class FinancialRiskProfile(BaseModel):
+    """Strict schema for financial-risk profile block."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
 
     overall_score: StrictStr = Field(min_length=1)
@@ -71,6 +85,8 @@ class FinancialRiskProfile(BaseModel):
 
 
 class CreditMetricValue(BaseModel):
+    """Strict schema for one year/value point of a credit metric."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
 
     year: StrictStr = Field(min_length=1)
@@ -78,6 +94,8 @@ class CreditMetricValue(BaseModel):
 
 
 class CreditMetric(BaseModel):
+    """Strict schema for one credit metric with its time-series values."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
 
     metric: StrictStr = Field(min_length=1)
@@ -86,6 +104,8 @@ class CreditMetric(BaseModel):
 
 
 class RatingAssessmentPayload(BaseModel):
+    """Top-level strict schema for an extracted rating assessment payload."""
+
     model_config = ConfigDict(extra="forbid", strict=True)
 
     company_information: CompanyInformation

@@ -11,9 +11,8 @@ from .models import CompanyModel
 @pytest.mark.parametrize(
     "payload",
     [
-        {},  # Missing required fields
+        {},  # Missing required company_id
         {"company_scd_key": "COMP1_v1"},  # Missing company_id
-        {"company_id": "COMP1"},  # Missing company_scd_key
     ],
 )
 def test_required_fields_invalid(payload):

@@ -1,15 +1,12 @@
 version: 2
 
-models:
+snapshots:
   - name: snap_company
     columns:
-      - name: snapshot_id
+      - name: dbt_scd_id
         tests:
           - not_null
           - unique
-      - name: snapshot_run_id
-        tests:
-          - not_null
       - name: company_id
         tests:
           - not_null

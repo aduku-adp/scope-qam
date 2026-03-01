@@ -1,3 +1,12 @@
+{{
+  config(
+    materialized='incremental',
+    unique_key='credit_metric_value_key',
+    incremental_strategy='delete+insert',
+    on_schema_change='sync_all_columns'
+  )
+}}
+
 with base as (
     select *
     from {{ ref('stg_credit_metrics') }}

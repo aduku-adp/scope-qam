@@ -29,6 +29,8 @@ except Exception:  # pragma: no cover
 
 
 class CompanyExtractionPipeline:
+    """Coordinate extract, validate, business-rule check, and load workflow."""
+
     def __init__(
         self,
         app_config: AppConfig,
@@ -36,6 +38,7 @@ class CompanyExtractionPipeline:
         repository: PostgresRepository,
         business_rules: BusinessRuleEngine | None = None,
     ) -> None:
+        """Instantiate the pipeline with its runtime collaborators."""
         self.app_config = app_config
         self.extractor = extractor
         self.repository = repository
@@ -71,6 +74,7 @@ class CompanyExtractionPipeline:
                 time.sleep(sleep_for)
 
     def _discover_incremental_files(self) -> list[Path]:
+        """Discover eligible files and apply incremental cutoff filtering."""
         data_dir = self.app_config.data_dir.resolve()
         if not data_dir.exists() or not data_dir.is_dir():
             raise FileNotFoundError(f"Data directory not found: {data_dir}")
@@ -108,9 +112,11 @@ class CompanyExtractionPipeline:
         ]
 
     def _file_hash(self, path: Path) -> str:
+        """Compute a stable SHA-256 hash for a source file."""
         return hashlib.sha256(path.read_bytes()).hexdigest()
 
     def run(self) -> None:
+        """Execute one end-to-end pipeline run and persist observability events."""
         metrics = PipelineRunMetrics(
             run_id=str(uuid.uuid4()),
             started_at=datetime.now(UTC),
@@ -142,6 +148,7 @@ class CompanyExtractionPipeline:
             print("No files to process for incremental load.")
 
         for workbook_path in workbook_paths:
+            # Each file is processed independently so one failure does not stop the run.
             metrics.files_processed += 1
             source_file_path = str(workbook_path.resolve())
             source_modified_at = self.repository.get_source_modified_at_utc(workbook_path)
