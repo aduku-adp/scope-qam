@@ -29,6 +29,10 @@ jobs:
         run: |
           ruff check .
 
-      - name: Run tests
+      - name: Run data-extraction tests
         run: |
           python -m pytest -q modules/data-extraction/tests
+
+      - name: Run qam-api tests
+        run: |
+          python -m pytest -q modules/qam-api/src

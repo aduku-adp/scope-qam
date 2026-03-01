@@ -10,7 +10,11 @@ export AIRFLOW_IMAGE_NAME
 
 # Build airflow image
 echo "Build airflow image"
-"$TOOLS_DIR/build-airflow.sh"
+"$TOOLS_DIR/build_airflow.sh"
+
+# Build qam-api image
+echo "Build qam-api image"
+"$TOOLS_DIR/build_qam_api.sh"
 
 # Clean the stack
 echo "Clean the stack"
@@ -27,5 +31,6 @@ docker compose down --volumes --remove-orphans
 # Depoy the stack
 echo "Depoy the stack"
 docker compose up -d
+
 echo "API deployed. UI: http://localhost:8501"
 echo "Airflow deployed. UI: http://localhost:8080"

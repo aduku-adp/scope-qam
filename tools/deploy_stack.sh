@@ -8,7 +8,8 @@ AIRFLOW_IMAGE_NAME="${AIRFLOW_IMAGE_NAME:-scope-qam-airflow:local}"
 cd "$ROOT_DIR"
 export AIRFLOW_IMAGE_NAME
 
-"$TOOLS_DIR/build-airflow.sh"
+"$TOOLS_DIR/build_airflow.sh"
+"$TOOLS_DIR/build_qam_api.sh"
 docker compose down --volumes --remove-orphans
 docker compose up
 

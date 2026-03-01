@@ -62,7 +62,7 @@ That allows DAG bash tasks to call:
 
 Build script:
 
-- [`tools/build-airflow.sh`](/tools/build-airflow.sh)
+- [`tools/build_airflow.sh`](/tools/build_airflow.sh)
 
 Dockerfile:
 
@@ -71,7 +71,7 @@ Dockerfile:
 Build:
 
 ```bash
-./tools/build-airflow.sh
+./tools/build_airflow.sh
 ```
 
 ## Run stack
@@ -79,7 +79,7 @@ Build:
 From repository root:
 
 ```bash
-docker compose up -d
+./tools/clean_deploy_stack.sh
 ```
 
 Airflow UI:
